@@ -210,7 +210,7 @@ export const INITIAL_TAGS: Tag[] = [
 export const INITIAL_USERS: User[] = [
   {
     id: 'user-admin-1',
-    name: 'Dilshan Wickramasinghe (Admin)',
+    name: 'WDJLANKA Admin',
     username: 'wdjlanka',
     password: 'admin123',
     role: 'ADMIN',
@@ -818,7 +818,7 @@ export const INITIAL_ACTIVITY_LOGS: ActivityLog[] = [
   {
     id: 'act-1',
     userId: 'user-admin-1',
-    userName: 'Dilshan Wickramasinghe',
+    userName: 'WDJLANKA Admin',
     role: 'ADMIN',
     action: 'Item Sold',
     itemCode: 'E003',
@@ -829,7 +829,7 @@ export const INITIAL_ACTIVITY_LOGS: ActivityLog[] = [
   {
     id: 'act-2',
     userId: 'user-admin-1',
-    userName: 'Dilshan Wickramasinghe',
+    userName: 'WDJLANKA Admin',
     role: 'ADMIN',
     action: 'Item Added',
     itemCode: 'B005',
@@ -840,7 +840,7 @@ export const INITIAL_ACTIVITY_LOGS: ActivityLog[] = [
   {
     id: 'act-3',
     userId: 'user-admin-1',
-    userName: 'Dilshan Wickramasinghe',
+    userName: 'WDJLANKA Admin',
     role: 'ADMIN',
     action: 'Item Sold',
     itemCode: 'H003',
@@ -851,7 +851,7 @@ export const INITIAL_ACTIVITY_LOGS: ActivityLog[] = [
   {
     id: 'act-4',
     userId: 'user-admin-1',
-    userName: 'Dilshan Wickramasinghe',
+    userName: 'WDJLANKA Admin',
     role: 'ADMIN',
     action: 'Item Sold',
     itemCode: 'B004',
@@ -862,7 +862,7 @@ export const INITIAL_ACTIVITY_LOGS: ActivityLog[] = [
   {
     id: 'act-5',
     userId: 'user-admin-1',
-    userName: 'Dilshan Wickramasinghe',
+    userName: 'WDJLANKA Admin',
     role: 'ADMIN',
     action: 'Price Updated',
     itemCode: 'E001',
@@ -877,7 +877,7 @@ export const INITIAL_SETTINGS: BusinessSettings = {
   tagline: 'Premium Imported Bicycles, Musical Instruments & Quality Goods',
   phone: '+94 11 234 5678 / +94 77 123 4567',
   email: 'info@wdjlanka.com',
-  address: 'No. 142/B, High Level Road, Maharagama, Sri Lanka',
+  address: 'WDJLANKA Main Showroom, Sri Lanka',
   currency: 'Rs.',
   dateFormat: 'YYYY-MM-DD',
   defaultMaxDiscountPercent: 8,

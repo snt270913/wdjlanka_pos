@@ -25,10 +25,12 @@ import {
   INITIAL_ACTIVITY_LOGS 
 } from '../data/initialData';
 import { localDataSync } from '../data/storage';
-import { deleteSupabaseRecord, hasSupabase, loadSupabaseCollection, upsertSupabaseRecord } from '../data/supabaseSync';
+import { clearSupabaseCollection, deleteSupabaseRecord, hasSupabase, loadSupabaseCollection, upsertSupabaseRecord } from '../data/supabaseSync';
 
 interface AppContextType {
   currentUser: User | null;
+  isDarkMode: boolean;
+  setIsDarkMode: (enabled: boolean) => void;
   setCurrentUser: (user: User | null) => void;
   login: (username: string, pin: string) => { success: boolean; message: string };
   logout: () => void;
@@ -131,6 +133,7 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('wdj_dark_mode') === 'true');
   // Load from localStorage or seed
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
     if (!localStorage.getItem('wdj_admin_pin')) {
@@ -194,6 +197,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [isGoogleSheetsModalOpen, setIsGoogleSheetsModalOpen] = useState(false);
   const [selectedItemForSale, setSelectedItemForSale] = useState<Item | null>(null);
   const [selectedLabelItemCodes, setSelectedLabelItemCodes] = useState<string[]>(['B001', 'B002', 'M001', 'M003', 'H001', 'E001']);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', isDarkMode);
+    localStorage.setItem('wdj_dark_mode', String(isDarkMode));
+  }, [isDarkMode]);
 
   // Sync to localStorage
   useEffect(() => {
@@ -812,17 +820,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // Reset to initial seed
   const resetAllDataToDefault = () => {
-    setItems(INITIAL_ITEMS);
-    setCategories(INITIAL_CATEGORIES);
+    setItems([]);
     setTags(INITIAL_TAGS);
-    setSales(INITIAL_SALES);
-    setCustomers(INITIAL_CUSTOMERS);
+    setSales([]);
+    setCustomers([]);
     setCustomerRequests([]);
-    setUsers(INITIAL_USERS);
     setActivityLogs(INITIAL_ACTIVITY_LOGS);
-    setSettings(INITIAL_SETTINGS);
-    setCurrentUser(INITIAL_USERS[0]);
-    localStorage.clear();
+    localStorage.removeItem('wdj_items_v2');
+    localStorage.removeItem('wdj_sales_v2');
+    localStorage.removeItem('wdj_customers_v2');
+    localStorage.removeItem('wdj_customer_requests_v1');
+    if (hasSupabase()) {
+      void Promise.all(['items', 'sales', 'customers', 'customer_requests'].map(clearSupabaseCollection));
+    }
   };
 
   // Export CSV
@@ -889,6 +899,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     <AppContext.Provider
       value={{
         currentUser,
+        isDarkMode,
+        setIsDarkMode,
         setCurrentUser,
         login,
         logout,

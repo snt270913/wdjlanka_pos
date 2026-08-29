@@ -15,6 +15,22 @@
   75% { transform: translateX(4px); }
 }
 
+html.dark body {
+  background: #020617;
+}
+
+html.dark .bg-white { background-color: #0f172a; }
+html.dark .bg-slate-50, html.dark .bg-slate-100 { background-color: #111c31; }
+html.dark .bg-slate-200 { background-color: #1e293b; }
+html.dark .text-slate-900, html.dark .text-slate-800 { color: #f1f5f9; }
+html.dark .text-slate-700, html.dark .text-slate-600 { color: #cbd5e1; }
+html.dark .text-slate-500, html.dark .text-slate-400 { color: #94a3b8; }
+html.dark .border-slate-200, html.dark .border-slate-100 { border-color: #263449; }
+html.dark .border-slate-300 { border-color: #334155; }
+html.dark input, html.dark textarea, html.dark select { color-scheme: dark; }
+html.dark .hover\:bg-slate-50:hover { background-color: #17243a; }
+html.dark .hover\:bg-slate-100:hover { background-color: #1e293b; }
+
 @media print {
   html, body {
     width: 210mm;

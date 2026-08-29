@@ -16,6 +16,7 @@ import {
   ExternalLink,
   ChevronDown,
   Layers
+  , Moon, Sun
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -34,6 +35,7 @@ export const Header: React.FC<HeaderProps> = ({ setMobileOpen }) => {
     resetAllDataToDefault,
     setSelectedItemForDetail,
     activeTab
+    , isDarkMode, setIsDarkMode
   } = useApp();
 
   const [alertsOpen, setAlertsOpen] = useState(false);
@@ -94,8 +96,6 @@ export const Header: React.FC<HeaderProps> = ({ setMobileOpen }) => {
             <span>{tabTitles[activeTab] || 'WDJLANKA(PVT)LTD'}</span>
           </h2>
           <div className="text-[11px] text-slate-500 hidden sm:flex items-center gap-2">
-            <span>Branch: Maharagama Central</span>
-            <span>•</span>
             <span className="text-emerald-600 font-medium flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               Live Database Connected
@@ -106,6 +106,15 @@ export const Header: React.FC<HeaderProps> = ({ setMobileOpen }) => {
 
       {/* Right section: Search bar, QR Scanner, Alerts, User Profile */}
       <div className="flex items-center gap-2 sm:gap-3">
+        <button
+          id="header-theme-toggle"
+          onClick={() => setIsDarkMode(!isDarkMode)}
+          className="p-2 rounded-2xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-slate-800 transition cursor-pointer"
+          title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+          aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          {isDarkMode ? <Sun className="w-5 h-5 text-amber-300" /> : <Moon className="w-5 h-5" />}
+        </button>
         {/* Global Search Button */}
         <button
           id="header-global-search-button"

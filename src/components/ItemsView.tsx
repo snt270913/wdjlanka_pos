@@ -59,6 +59,7 @@ export const ItemsView: React.FC = () => {
   const [selectedTag, setSelectedTag] = useState<string>('ALL');
   const [viewMode, setViewMode] = useState<'table' | 'grid' | 'aging'>('table');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'price-asc' | 'price-desc' | 'code'>('newest');
+  const [copyMessage, setCopyMessage] = useState<string | null>(null);
 
   // Subcategories of selected category
   const currentCategoryObj = categories.find(c => c.id === selectedCategory);
@@ -131,6 +132,22 @@ export const ItemsView: React.FC = () => {
     }
   };
 
+  const copyItemDetails = async (item: Item) => {
+    const details = `Item Code: ${item.code}\nItem Name: ${item.name}\nCategory: ${item.categoryName}\nSelling Price: ${formatCurrency(item.sellingPrice)}`;
+    try {
+      await navigator.clipboard.writeText(details);
+    } catch {
+      const textarea = document.createElement('textarea');
+      textarea.value = details;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      textarea.remove();
+    }
+    setCopyMessage(`${item.code} details copied`);
+    window.setTimeout(() => setCopyMessage(null), 1800);
+  };
+
   const handlePrintItemLabel = (code: string) => {
     selectAllLabels([code]);
     setActiveTab('qr-labels');
@@ -138,6 +155,7 @@ export const ItemsView: React.FC = () => {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-5 max-w-7xl mx-auto">
+      {copyMessage && <div className="fixed right-5 bottom-5 z-50 rounded-xl bg-slate-900 text-white border border-cyan-400/30 px-4 py-3 text-xs font-semibold shadow-xl animate-in fade-in">{copyMessage}</div>}
       {/* Header Actions Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -423,6 +441,9 @@ export const ItemsView: React.FC = () => {
                   return (
                     <tr 
                       key={item.id} 
+                      onClick={(event) => {
+                        if (!(event.target as HTMLElement).closest('button, input, select, a')) void copyItemDetails(item);
+                      }}
                       className={`hover:bg-slate-50/80 transition ${
                         item.status === 'SOLD' ? 'bg-slate-50/40 text-slate-400' : ''
                       }`}
@@ -459,9 +480,9 @@ export const ItemsView: React.FC = () => {
 
                           <div>
                             <div className="flex items-center gap-2">
-                              <span className="font-mono font-bold text-xs bg-blue-50 text-blue-800 px-1.5 py-0.5 rounded-lg border border-blue-200/50">
+                              <button type="button" onClick={() => copyItemDetails(item)} className="font-mono font-bold text-xs bg-blue-50 text-blue-800 px-1.5 py-0.5 rounded-lg border border-blue-200/50 cursor-pointer">
                                 {item.code}
-                              </span>
+                              </button>
                               <button
                                 onClick={() => setSelectedItemForDetail(item)}
                                 className="font-bold text-slate-900 hover:text-blue-600 transition text-left cursor-pointer truncate max-w-xs block"

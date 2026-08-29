@@ -266,7 +266,7 @@ export const MarkSoldModal: React.FC = () => {
                   <textarea
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
-                    placeholder="e.g. Paid in cash, collected at Maharagama showroom, warranty details..."
+                    placeholder="e.g. Paid in cash, collected at showroom, warranty details..."
                     rows={2}
                     className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white"
                   />

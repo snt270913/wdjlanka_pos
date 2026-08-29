@@ -24,9 +24,15 @@ export const deleteSupabaseRecord = async (table: string, id: string): Promise<v
   if (error) console.error(`Unable to delete ${table} record`, error);
 };
 
+export const clearSupabaseCollection = async (table: string): Promise<void> => {
+  if (!supabase) return;
+  const { error } = await supabase.from(table).delete().not('id', 'is', null);
+  if (error) console.error(`Unable to clear ${table}`, error);
+};
+
 export const uploadItemImage = async (file: File): Promise<string | null> => {
   if (!supabase) return null;
-  const path = `${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '-')}`;
+  const path = `${globalThis.crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '-')}`;
   const { error } = await supabase.storage.from('item-images').upload(path, file, { upsert: false, contentType: file.type });
   if (error) {
     console.error('Unable to upload item image', error);
