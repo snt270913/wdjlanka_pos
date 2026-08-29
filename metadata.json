@@ -1,0 +1,6 @@
+{
+  "name": "WDJLANKA(PVT)LTD — Inventory & POS",
+  "description": "Comprehensive Inventory, Sales, QR Label Printing, and Analytics Management System for WDJLANKA(PVT)LTD.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

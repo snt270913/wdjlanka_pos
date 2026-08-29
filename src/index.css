@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  code, kbd, samp, pre {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+@media print {
+  html, body {
+    width: 210mm;
+    min-height: 297mm;
+    margin: 0;
+    background: white;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+  #printable-labels-area, #printable-labels-area * {
+    visibility: visible;
+  }
+  #printable-labels-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 5mm;
+    background: white;
+    box-sizing: border-box;
+  }
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+}
+
