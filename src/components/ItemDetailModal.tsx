@@ -119,28 +119,40 @@ export const ItemDetailModal: React.FC = () => {
   const editItemTypes = editSubcategory?.itemTypes || [];
   const newCategoryCode = generateCategoryCode(newCategoryName);
 
-  const handleAddEditCategory = () => {
+  const handleAddEditCategory = async () => {
     if (!newCategoryName.trim()) return;
-    const id = addCategory(newCategoryName.trim());
-    setEditCategoryId(id);
-    setEditSubcategoryId('');
-    setEditItemTypeId('');
-    setNewCategoryName('');
+    try {
+      const id = await addCategory(newCategoryName.trim());
+      setEditCategoryId(id);
+      setEditSubcategoryId('');
+      setEditItemTypeId('');
+      setNewCategoryName('');
+    } catch {
+      // Keep the inline form open so the user can retry after a database failure.
+    }
   };
 
-  const handleAddEditSubcategory = () => {
+  const handleAddEditSubcategory = async () => {
     if (!editCategoryId || !newSubcategoryName.trim()) return;
-    const id = addSubcategory(editCategoryId, newSubcategoryName.trim());
-    setEditSubcategoryId(id);
-    setEditItemTypeId('');
-    setNewSubcategoryName('');
+    try {
+      const id = await addSubcategory(editCategoryId, newSubcategoryName.trim());
+      setEditSubcategoryId(id);
+      setEditItemTypeId('');
+      setNewSubcategoryName('');
+    } catch {
+      // Keep the inline form open so the user can retry after a database failure.
+    }
   };
 
-  const handleAddEditItemType = () => {
+  const handleAddEditItemType = async () => {
     if (!editCategoryId || !editSubcategoryId || !newItemTypeName.trim()) return;
-    const id = addItemType(editCategoryId, editSubcategoryId, newItemTypeName.trim());
-    setEditItemTypeId(id);
-    setNewItemTypeName('');
+    try {
+      const id = await addItemType(editCategoryId, editSubcategoryId, newItemTypeName.trim());
+      setEditItemTypeId(id);
+      setNewItemTypeName('');
+    } catch {
+      // Keep the inline form open so the user can retry after a database failure.
+    }
   };
 
   const handlePhotoChange = async (file: File | undefined, setPhoto: (value: string) => void) => {

@@ -75,28 +75,40 @@ export const AddItemModal: React.FC = () => {
   const currentItemTypes = currentSubcategory?.itemTypes || [];
   const newCategoryCode = generateCategoryCode(newCategoryName);
 
-  const handleAddCategoryInline = () => {
+  const handleAddCategoryInline = async () => {
     if (!newCategoryName.trim()) return;
-    const id = addCategory(newCategoryName.trim());
-    setCategoryId(id);
-    setSubcategoryId('');
-    setItemTypeId('');
-    setNewCategoryName('');
+    try {
+      const id = await addCategory(newCategoryName.trim());
+      setCategoryId(id);
+      setSubcategoryId('');
+      setItemTypeId('');
+      setNewCategoryName('');
+    } catch {
+      // Keep the inline form open so the user can retry after a database failure.
+    }
   };
 
-  const handleAddSubcategoryInline = () => {
+  const handleAddSubcategoryInline = async () => {
     if (!categoryId || !newSubcategoryName.trim()) return;
-    const id = addSubcategory(categoryId, newSubcategoryName.trim());
-    setSubcategoryId(id);
-    setItemTypeId('');
-    setNewSubcategoryName('');
+    try {
+      const id = await addSubcategory(categoryId, newSubcategoryName.trim());
+      setSubcategoryId(id);
+      setItemTypeId('');
+      setNewSubcategoryName('');
+    } catch {
+      // Keep the inline form open so the user can retry after a database failure.
+    }
   };
 
-  const handleAddItemTypeInline = () => {
+  const handleAddItemTypeInline = async () => {
     if (!categoryId || !subcategoryId || !newItemTypeName.trim()) return;
-    const id = addItemType(categoryId, subcategoryId, newItemTypeName.trim());
-    setItemTypeId(id);
-    setNewItemTypeName('');
+    try {
+      const id = await addItemType(categoryId, subcategoryId, newItemTypeName.trim());
+      setItemTypeId(id);
+      setNewItemTypeName('');
+    } catch {
+      // Keep the inline form open so the user can retry after a database failure.
+    }
   };
 
   const estimatedProfit = sellingPrice - costPrice;

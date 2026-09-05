@@ -53,14 +53,14 @@ interface AppContextType {
 
   // Categories
   categories: Category[];
-  addCategory: (name: string, prefix?: string, description?: string) => string;
+  addCategory: (name: string, prefix?: string, description?: string) => Promise<string>;
   generateCategoryCode: (name: string, preferredPrefix?: string) => string;
-  updateCategory: (id: string, updates: Partial<Category>) => void;
-  addSubcategory: (categoryId: string, name: string) => string;
-  addItemType: (categoryId: string, subcategoryId: string, name: string) => string;
-  deleteCategory: (id: string) => void;
-  deleteSubcategory: (categoryId: string, subcategoryId: string) => void;
-  deleteItemType: (categoryId: string, subcategoryId: string, typeId: string) => void;
+  updateCategory: (id: string, updates: Partial<Category>) => Promise<void>;
+  addSubcategory: (categoryId: string, name: string) => Promise<string>;
+  addItemType: (categoryId: string, subcategoryId: string, name: string) => Promise<string>;
+  deleteCategory: (id: string) => Promise<void>;
+  deleteSubcategory: (categoryId: string, subcategoryId: string) => Promise<void>;
+  deleteItemType: (categoryId: string, subcategoryId: string, typeId: string) => Promise<void>;
 
   // Tags
   tags: Tag[];
@@ -516,7 +516,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return generatedCode;
   };
 
-  const addCategory = (name: string, prefix?: string, description?: string) => {
+  const addCategory = async (name: string, prefix?: string, description?: string): Promise<string> => {
     const id = `cat-${Date.now()}`;
     const generatedCode = generateCategoryCode(name, prefix);
     const newCat: Category = {
@@ -526,91 +526,75 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       description,
       subcategories: [],
     };
+    await insertSupabaseRecord('categories', newCat);
     setCategories(prev => [...prev, newCat]);
     logAction('Category Added', `Created new category: ${name} (Prefix: ${newCat.prefix})`);
     return id;
   };
 
-  const updateCategory = (id: string, updates: Partial<Category>) => {
-    setCategories(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
+  const updateCategory = async (id: string, updates: Partial<Category>): Promise<void> => {
+    const category = categories.find(c => c.id === id);
+    if (!category) return;
+    const updatedCategory = { ...category, ...updates };
+    await updateSupabaseRecord('categories', updatedCategory);
+    setCategories(prev => prev.map(c => c.id === id ? updatedCategory : c));
   };
 
-  const addSubcategory = (categoryId: string, name: string) => {
+  const addSubcategory = async (categoryId: string, name: string): Promise<string> => {
     const slug = name.trim().toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace(/^-|-$/g, '') || 'SUB';
     const id = `SUB-${slug}-${Date.now().toString().slice(-3)}`;
-    setCategories(prev => prev.map(cat => {
-      if (cat.id === categoryId) {
-        return {
-          ...cat,
-          subcategories: [
-            ...cat.subcategories,
-            { id, name, itemTypes: [] }
-          ]
-        };
-      }
-      return cat;
-    }));
+    const category = categories.find(cat => cat.id === categoryId);
+    if (!category) throw new Error('Parent category not found.');
+    const updatedCategory = {
+      ...category,
+      subcategories: [...category.subcategories, { id, name, itemTypes: [] }],
+    };
+    await updateSupabaseRecord('categories', updatedCategory);
+    setCategories(prev => prev.map(cat => cat.id === categoryId ? updatedCategory : cat));
     return id;
   };
 
-  const addItemType = (categoryId: string, subcategoryId: string, name: string) => {
+  const addItemType = async (categoryId: string, subcategoryId: string, name: string): Promise<string> => {
     const slug = name.trim().toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace(/^-|-$/g, '') || 'TYPE';
     const id = `TYPE-${slug}-${Date.now().toString().slice(-3)}`;
-    setCategories(prev => prev.map(cat => {
-      if (cat.id === categoryId) {
-        return {
-          ...cat,
-          subcategories: cat.subcategories.map(sub => {
-            if (sub.id === subcategoryId) {
-              return {
-                ...sub,
-                itemTypes: [...sub.itemTypes, { id, name }]
-              };
-            }
-            return sub;
-          })
-        };
-      }
-      return cat;
-    }));
+    const category = categories.find(cat => cat.id === categoryId);
+    const subcategory = category?.subcategories.find(sub => sub.id === subcategoryId);
+    if (!category || !subcategory) throw new Error('Parent category or subcategory not found.');
+    const updatedCategory = {
+      ...category,
+      subcategories: category.subcategories.map(sub => sub.id === subcategoryId
+        ? { ...sub, itemTypes: [...sub.itemTypes, { id, name }] }
+        : sub),
+    };
+    await updateSupabaseRecord('categories', updatedCategory);
+    setCategories(prev => prev.map(cat => cat.id === categoryId ? updatedCategory : cat));
     return id;
   };
 
-  const deleteCategory = (id: string) => {
+  const deleteCategory = async (id: string): Promise<void> => {
+    await deleteSupabaseRecord('categories', id);
     setCategories(prev => prev.filter(c => c.id !== id));
-    void deleteSupabaseRecord('categories', id);
   };
 
-  const deleteSubcategory = (categoryId: string, subcategoryId: string) => {
-    setCategories(prev => prev.map(cat => {
-      if (cat.id === categoryId) {
-        return {
-          ...cat,
-          subcategories: cat.subcategories.filter(s => s.id !== subcategoryId)
-        };
-      }
-      return cat;
-    }));
+  const deleteSubcategory = async (categoryId: string, subcategoryId: string): Promise<void> => {
+    const category = categories.find(cat => cat.id === categoryId);
+    if (!category) return;
+    const updatedCategory = { ...category, subcategories: category.subcategories.filter(s => s.id !== subcategoryId) };
+    await updateSupabaseRecord('categories', updatedCategory);
+    setCategories(prev => prev.map(cat => cat.id === categoryId ? updatedCategory : cat));
   };
 
-  const deleteItemType = (categoryId: string, subcategoryId: string, typeId: string) => {
-    setCategories(prev => prev.map(cat => {
-      if (cat.id === categoryId) {
-        return {
-          ...cat,
-          subcategories: cat.subcategories.map(sub => {
-            if (sub.id === subcategoryId) {
-              return {
-                ...sub,
-                itemTypes: sub.itemTypes.filter(t => t.id !== typeId)
-              };
-            }
-            return sub;
-          })
-        };
-      }
-      return cat;
-    }));
+  const deleteItemType = async (categoryId: string, subcategoryId: string, typeId: string): Promise<void> => {
+    const category = categories.find(cat => cat.id === categoryId);
+    if (!category) return;
+    const updatedCategory = {
+      ...category,
+      subcategories: category.subcategories.map(sub => sub.id === subcategoryId
+        ? { ...sub, itemTypes: sub.itemTypes.filter(t => t.id !== typeId) }
+        : sub),
+    };
+    await updateSupabaseRecord('categories', updatedCategory);
+    setCategories(prev => prev.map(cat => cat.id === categoryId ? updatedCategory : cat));
   };
 
   // Tags

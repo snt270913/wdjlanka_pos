@@ -69,12 +69,16 @@ export const SettingsView: React.FC = () => {
     setTimeout(() => setBusinessSavedMessage(false), 3000);
   };
 
-  const handleAddCategory = (e: React.FormEvent) => {
+  const handleAddCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCatName.trim()) return;
-    addCategory(newCatName.trim(), undefined, newCatDesc.trim() || undefined);
-    setNewCatName('');
-    setNewCatDesc('');
+    try {
+      await addCategory(newCatName.trim(), undefined, newCatDesc.trim() || undefined);
+      setNewCatName('');
+      setNewCatDesc('');
+    } catch {
+      // Keep the form open so the user can retry after a database failure.
+    }
   };
 
   const startCategoryEdit = (categoryId: string, currentName: string) => {
