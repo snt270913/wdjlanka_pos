@@ -267,7 +267,7 @@ export const QRScannerModal: React.FC = () => {
                     className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <ShoppingCart className="w-3.5 h-3.5" />
-                    <span>Sell This Item</span>
+                    <span>Add to Cart</span>
                   </button>
                 )}
 

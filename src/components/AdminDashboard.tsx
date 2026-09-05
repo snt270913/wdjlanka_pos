@@ -385,7 +385,7 @@ export const AdminDashboard: React.FC = () => {
                     className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-sm shadow-emerald-600/20"
                   >
                     <ShoppingCart className="w-4 h-4" />
-                    <span>Sell Now (Checkout)</span>
+                    <span>Add to Cart</span>
                   </button>
                 )}
               </div>

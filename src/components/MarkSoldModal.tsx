@@ -105,10 +105,12 @@ export const MarkSoldModal: React.FC = () => {
       invoice.setFontSize(22);
       invoice.text('WDJLANKA (PVT) LTD', left, 18);
       invoice.setFont('helvetica', 'normal');
-      invoice.setFontSize(9);
-      invoice.text(settings.tagline || 'Sales & Inventory Invoice', left, 26);
-      invoice.text(settings.email || '', left, 32);
-      if (settings.address) invoice.text(settings.address, right, 34, { align: 'right' });
+      invoice.setFontSize(8);
+      const taglineLines = invoice.splitTextToSize(settings.tagline || 'Sales & Inventory Invoice', 105);
+      invoice.text(taglineLines, left, 25, { lineHeightFactor: 1.25 });
+      const contactY = 25 + taglineLines.length * 4;
+      invoice.text(settings.email || '', left, contactY);
+      if (settings.address) invoice.text(invoice.splitTextToSize(settings.address, 70), right, contactY, { align: 'right' });
       invoice.setFont('helvetica', 'bold');
       invoice.setFontSize(18);
       invoice.text('INVOICE', right, 20, { align: 'right' });
@@ -141,19 +143,19 @@ export const MarkSoldModal: React.FC = () => {
       invoice.setTextColor(71, 85, 105);
       invoice.setFont('helvetica', 'bold');
       invoice.setFontSize(9);
-      invoice.text('ITEM CODE', left + 5, tableTop + 7);
-      invoice.text('ITEM NAME', left + 35, tableTop + 7);
-      invoice.text('ORIGINAL', right - 65, tableTop + 7, { align: 'right' });
-      invoice.text('SOLD PRICE', right - 5, tableTop + 7, { align: 'right' });
+      invoice.text('ITEM / QTY', left + 5, tableTop + 7);
+      invoice.text('ITEM NAME / UNIT PRICE', left + 35, tableTop + 7);
+      invoice.text('DISCOUNT', right - 65, tableTop + 7, { align: 'right' });
+      invoice.text('LINE TOTAL', right - 5, tableTop + 7, { align: 'right' });
 
       invoice.setTextColor(15, 23, 42);
       invoice.setFont('helvetica', 'normal');
       invoice.setFontSize(10);
       completedSales.forEach((sale, index) => {
         const rowTop = tableTop + 23 + index * 12;
-        invoice.text(`${sale.itemCode} x${sale.quantity || 1}`, left + 5, rowTop);
-        invoice.text(invoice.splitTextToSize(sale.itemName, 65), left + 35, rowTop);
-        invoice.text(formatInvoiceCurrency(sale.originalPrice), right - 65, rowTop, { align: 'right' });
+        invoice.text(`${sale.itemCode} | Qty: ${sale.quantity || 1}`, left + 5, rowTop);
+        invoice.text(invoice.splitTextToSize(`${sale.itemName} | Unit: ${formatInvoiceCurrency(sale.originalPrice / (sale.quantity || 1))}`, 65), left + 35, rowTop);
+        invoice.text(formatInvoiceCurrency(sale.discount), right - 65, rowTop, { align: 'right' });
         invoice.text(formatInvoiceCurrency(sale.soldPrice), right - 5, rowTop, { align: 'right' });
       });
       invoice.setDrawColor(226, 232, 240);
@@ -256,11 +258,13 @@ export const MarkSoldModal: React.FC = () => {
 
             <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-200/80 space-y-3">
               <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Cart Items &amp; Discounts</h3>
+              <div className="grid grid-cols-[1fr_auto_auto_auto] gap-2 px-1 text-[10px] font-bold uppercase tracking-wider text-slate-500"><span>Item / Unit Price</span><span>Qty</span><span>Discount</span><span>Final</span></div>
               {cart.map(line => (
                 <div key={line.item.id} className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-2 text-xs">
-                  <div className="min-w-0"><div className="font-bold truncate">{line.item.code} - {line.item.name}</div><div className="text-slate-500">{formatCurrency(line.item.sellingPrice)} each</div></div>
-                  <input aria-label={`Quantity for ${line.item.code}`} type="number" min={1} max={line.item.quantity ?? 1} value={line.quantity} onChange={e => updateCartLine(line.item.id, { quantity: Number(e.target.value) || 1 })} className="w-16 px-2 py-1.5 rounded-lg border border-slate-200 font-mono" />
-                  <input aria-label={`Discount for ${line.item.code}`} type="number" min={0} value={line.discount} onChange={e => updateCartLine(line.item.id, { discount: Number(e.target.value) || 0 })} className="w-24 px-2 py-1.5 rounded-lg border border-slate-200 font-mono text-amber-700" />
+                  <div className="min-w-0"><div className="font-bold truncate">{line.item.code} - {line.item.name}</div><div className="text-slate-500">Unit Price: {formatCurrency(line.item.sellingPrice)}</div></div>
+                  <label className="flex items-center gap-1"><span className="sr-only">Qty</span><input aria-label={`Qty for ${line.item.code}`} type="number" min={1} max={line.item.quantity ?? 1} value={line.quantity} onChange={e => updateCartLine(line.item.id, { quantity: Number(e.target.value) || 1 })} className="w-16 px-2 py-1.5 rounded-lg border border-slate-200 font-mono" /></label>
+                  <label className="flex items-center gap-1"><span className="sr-only">Discount</span><input aria-label={`Discount for ${line.item.code}`} type="number" min={0} value={line.discount} onChange={e => updateCartLine(line.item.id, { discount: Number(e.target.value) || 0 })} className="w-24 px-2 py-1.5 rounded-lg border border-slate-200 font-mono text-amber-700" /></label>
+                  <span className="font-mono font-bold text-blue-700">{formatCurrency(line.item.sellingPrice * line.quantity - line.discount)}</span>
                   <button type="button" onClick={() => removeCartLine(line.item.id)} className="text-rose-600 font-bold cursor-pointer" aria-label={`Remove ${line.item.code}`}>Remove</button>
                 </div>
               ))}
@@ -356,7 +360,7 @@ export const MarkSoldModal: React.FC = () => {
               </div>
 
               <div className="space-y-1 text-[11px]">
-                {completedSales.map(sale => <div key={sale.id} className="flex justify-between gap-3"><span className="text-slate-500">Item:</span><span className="truncate max-w-[260px]">{sale.itemCode} x{sale.quantity || 1} - {sale.itemName}</span></div>)}
+                {completedSales.map(sale => <div key={sale.id} className="flex justify-between gap-3"><span className="text-slate-500">Item / Qty:</span><span className="truncate max-w-[260px]">{sale.itemCode} | Qty: {sale.quantity || 1} | Unit: {formatCurrency(sale.originalPrice / (sale.quantity || 1))} | Discount: {formatCurrency(sale.discount)} | Final: {formatCurrency(sale.soldPrice)} - {sale.itemName}</span></div>)}
                 <div className="flex justify-between">
                   <span className="text-slate-500">Customer:</span>
                   <span>{completedSales[0].customerName}</span>

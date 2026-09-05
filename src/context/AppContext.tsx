@@ -328,7 +328,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           ? { ...line, quantity: Math.min(line.quantity + 1, item.quantity ?? 1) }
           : line);
       }
-      return [...prev, { item, quantity: 1, discount: 0 }];
+      return [...prev, { item, quantity: 1, discount: Math.max(0, item.maxDiscount || 0) }];
     });
     setSelectedItemForSaleState(item);
     setIsCartOpen(true);

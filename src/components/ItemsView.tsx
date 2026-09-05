@@ -513,9 +513,11 @@ export const ItemsView: React.FC = () => {
 
                       {/* Available Quantity */}
                       <td className="p-3.5">
-                        <span className={`inline-flex min-w-16 justify-center px-2.5 py-1 rounded-lg font-mono text-xs font-bold border ${(item.quantity ?? 1) > 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>
-                          {(item.quantity ?? 1)} in stock
-                        </span>
+                        {item.status !== 'SOLD' && (item.quantity ?? 1) > 0 && (
+                          <span className="inline-flex min-w-16 justify-center px-2.5 py-1 rounded-lg font-mono text-xs font-bold border bg-emerald-50 text-emerald-700 border-emerald-200">
+                            {(item.quantity ?? 1)} in stock
+                          </span>
+                        )}
                       </td>
 
                       {/* Condition */}
@@ -583,7 +585,7 @@ export const ItemsView: React.FC = () => {
                               title="Mark as Sold"
                               className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs shadow-2xs transition cursor-pointer"
                             >
-                              Sell
+                              Add to Cart
                             </button>
                           )}
 
@@ -693,9 +695,11 @@ export const ItemsView: React.FC = () => {
                       <span>{item.condition}</span>
                     </div>
 
-                    <div className={`inline-flex px-2 py-1 rounded-lg border font-mono text-[10px] font-bold ${(item.quantity ?? 1) > 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>
-                      Stock: {item.quantity ?? 1}
-                    </div>
+                    {item.status !== 'SOLD' && (item.quantity ?? 1) > 0 && (
+                      <div className="inline-flex px-2 py-1 rounded-lg border font-mono text-[10px] font-bold bg-emerald-50 text-emerald-700 border-emerald-200">
+                        Stock: {item.quantity ?? 1}
+                      </div>
+                    )}
 
                     <h4 
                       onClick={() => setSelectedItemForDetail(item)}
@@ -732,7 +736,7 @@ export const ItemsView: React.FC = () => {
                       onClick={() => setSelectedItemForSale(item)}
                       className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl text-center cursor-pointer transition"
                     >
-                      Sell
+                      Add to Cart
                     </button>
                   )}
                 </div>
@@ -789,7 +793,7 @@ export const ItemsView: React.FC = () => {
                         onClick={() => setSelectedItemForSale(item)}
                         className="px-3 py-1.5 bg-emerald-600 text-white rounded-xl text-xs font-bold cursor-pointer hover:bg-emerald-500 transition"
                       >
-                        Sell
+                        Add to Cart
                       </button>
                     )}
                   </div>

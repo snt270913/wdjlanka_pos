@@ -570,7 +570,7 @@ export const ItemDetailModal: React.FC = () => {
                 className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20 transition flex items-center gap-1.5 cursor-pointer"
               >
                 <ShoppingCart className="w-4 h-4" />
-                <span>Mark as SOLD</span>
+                <span>Add to Cart</span>
               </button>
             )}
 
