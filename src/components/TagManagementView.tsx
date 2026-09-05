@@ -18,7 +18,7 @@ export const TagManagementView: React.FC = () => {
   const handleAddTag = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTagName.trim()) return;
-    addTag(newTagName.trim());
+    addTag(newTagName.trim(), 'bg-slate-100 text-slate-700 border-slate-200');
     setNewTagName('');
   };
 

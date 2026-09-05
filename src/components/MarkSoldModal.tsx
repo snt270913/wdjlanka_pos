@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
-import { Item, Sale } from '../types';
+import { Sale } from '../types';
 import { 
   X, 
   ShoppingCart, 
   CheckCircle2, 
   AlertCircle, 
   User, 
-  FileText, 
+  FileText,
   Download,
   Sparkles,
   Building2
@@ -18,83 +18,80 @@ import { getItemImageUrl } from '../data/supabaseSync';
 
 export const MarkSoldModal: React.FC = () => {
   const { 
-    selectedItemForSale, 
-    setSelectedItemForSale, 
-    markItemAsSold, 
+    selectedItemForSale,
+    setSelectedItemForSale,
+    cart,
+    isCartOpen,
+    checkoutCart,
+    updateCartLine,
+    removeCartLine,
+    clearCart,
     currentUser, 
     formatCurrency, 
     settings 
   } = useApp();
 
-  const [soldPrice, setSoldPrice] = useState<number>(0);
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [note, setNote] = useState('');
-  const [discountApplied, setDiscountApplied] = useState(false);
   
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [completedSale, setCompletedSale] = useState<Sale | null>(null);
+  const [completedSales, setCompletedSales] = useState<Sale[]>([]);
   const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
 
   useEffect(() => {
     if (selectedItemForSale) {
-      setSoldPrice(selectedItemForSale.sellingPrice);
       setCustomerName('');
       setCustomerPhone('');
       setNote('');
-      setDiscountApplied(false);
       setErrorMessage(null);
-      setCompletedSale(null);
+      setCompletedSales([]);
     }
   }, [selectedItemForSale]);
 
-  if (!selectedItemForSale) return null;
+  if (!isCartOpen && completedSales.length === 0) return null;
 
-  const item = selectedItemForSale;
-  const discount = Math.max(0, item.sellingPrice - soldPrice);
-  const isDiscountOverLimit = discount > item.maxDiscount;
-  
-  const hasPromotion = item.maxDiscount > 0 || item.tags.some((tag) => /sale|promo|offer|discount|quick/i.test(tag));
-  const discountButtonLabel = discountApplied ? 'Discount Applied' : 'Apply Discount';
+  const item = cart[0]?.item || selectedItemForSale!;
+  const cartTotal = cart.reduce((sum, line) => sum + line.item.sellingPrice * line.quantity - line.discount, 0);
+  const cartDiscount = cart.reduce((sum, line) => sum + line.discount, 0);
+  const handleClose = () => {
+    clearCart();
+    setCompletedSales([]);
+  };
 
   const handleConfirmSale = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isCheckingOut) return;
     setErrorMessage(null);
-
-    if (soldPrice <= 0) {
-      setErrorMessage('Please enter a valid sold price.');
-      return;
-    }
-    if (isDiscountOverLimit) {
-      setErrorMessage(
-        `Applied discount of Rs. ${discount.toLocaleString()} exceeds the maximum allowed discount limit of Rs. ${item.maxDiscount.toLocaleString()}!`
-      );
-      return;
-    }
-
-    const res = await markItemAsSold(item.id, soldPrice, customerName.trim(), customerPhone.trim(), note.trim() || undefined);
-
-    if (res.success && res.sale) {
-      setCompletedSale(res.sale);
-      try {
-        confetti({
-          particleCount: 80,
-          spread: 70,
-          origin: { y: 0.6 }
-        });
-      } catch (err) {
-        // ignore
+    setIsCheckingOut(true);
+    try {
+      const res = await checkoutCart(customerName.trim(), customerPhone.trim(), note.trim() || undefined);
+      if (res.success && res.sales.length > 0) {
+        setCompletedSales(res.sales);
+        try {
+          confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+        } catch {
+          // ignore animation failures
+        }
+      } else {
+        setErrorMessage(res.message);
       }
-    } else {
-      setErrorMessage(res.message);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Unable to complete checkout. Please try again.');
+    } finally {
+      setIsCheckingOut(false);
     }
   };
 
   const handleDownloadInvoice = async () => {
-    if (!completedSale || isDownloadingInvoice) return;
+    if (completedSales.length === 0 || isDownloadingInvoice) return;
 
     setIsDownloadingInvoice(true);
     try {
+      const firstSale = completedSales[0];
+      const totalDiscount = completedSales.reduce((sum, sale) => sum + sale.discount, 0);
+      const totalPaid = completedSales.reduce((sum, sale) => sum + sale.soldPrice, 0);
       const invoice = new jsPDF({ unit: 'mm', format: 'a4' });
       const pageWidth = invoice.internal.pageSize.getWidth();
       const left = 20;
@@ -117,7 +114,7 @@ export const MarkSoldModal: React.FC = () => {
       invoice.text('INVOICE', right, 20, { align: 'right' });
       invoice.setFont('helvetica', 'normal');
       invoice.setFontSize(9);
-      invoice.text(completedSale.id, right, 28, { align: 'right' });
+      invoice.text(firstSale.id, right, 28, { align: 'right' });
 
       invoice.setTextColor(15, 23, 42);
       invoice.setFont('helvetica', 'bold');
@@ -127,15 +124,15 @@ export const MarkSoldModal: React.FC = () => {
       invoice.line(left, 62, right, 62);
       invoice.setFont('helvetica', 'normal');
       invoice.setFontSize(10);
-      invoice.text(`Transaction ID: ${completedSale.id}`, left, 72);
-      invoice.text(`Date: ${new Date(completedSale.saleDate).toLocaleString()}`, left, 80);
-      invoice.text(`Employee: ${completedSale.employeeName}`, left, 88);
+      invoice.text(`Transaction ID: ${firstSale.id}`, left, 72);
+      invoice.text(`Date: ${new Date(firstSale.saleDate).toLocaleString()}`, left, 80);
+      invoice.text(`Employee: ${firstSale.employeeName}`, left, 88);
       invoice.text('Bill To:', right - 55, 72);
       invoice.setFont('helvetica', 'bold');
-      invoice.text(completedSale.customerName, right - 55, 80);
+      invoice.text(firstSale.customerName, right - 55, 80);
       invoice.setFont('helvetica', 'normal');
-      if (completedSale.customerId.startsWith('CUS-')) {
-        invoice.text(`Customer Code: ${completedSale.customerId}`, right - 55, 88);
+      if (firstSale.customerId.startsWith('CUS-')) {
+        invoice.text(`Customer Code: ${firstSale.customerId}`, right - 55, 88);
       }
 
       const tableTop = 106;
@@ -152,18 +149,21 @@ export const MarkSoldModal: React.FC = () => {
       invoice.setTextColor(15, 23, 42);
       invoice.setFont('helvetica', 'normal');
       invoice.setFontSize(10);
-      invoice.text(completedSale.itemCode, left + 5, tableTop + 23);
-      invoice.text(invoice.splitTextToSize(completedSale.itemName, 65), left + 35, tableTop + 23);
-      invoice.text(formatInvoiceCurrency(completedSale.originalPrice), right - 65, tableTop + 23, { align: 'right' });
-      invoice.text(formatInvoiceCurrency(completedSale.soldPrice), right - 5, tableTop + 23, { align: 'right' });
+      completedSales.forEach((sale, index) => {
+        const rowTop = tableTop + 23 + index * 12;
+        invoice.text(`${sale.itemCode} x${sale.quantity || 1}`, left + 5, rowTop);
+        invoice.text(invoice.splitTextToSize(sale.itemName, 65), left + 35, rowTop);
+        invoice.text(formatInvoiceCurrency(sale.originalPrice), right - 65, rowTop, { align: 'right' });
+        invoice.text(formatInvoiceCurrency(sale.soldPrice), right - 5, rowTop, { align: 'right' });
+      });
       invoice.setDrawColor(226, 232, 240);
-      invoice.line(left, tableTop + 32, right, tableTop + 32);
+      invoice.line(left, tableTop + 24 + completedSales.length * 12, right, tableTop + 24 + completedSales.length * 12);
 
-      let totalTop = tableTop + 48;
-      if (completedSale.discount > 0) {
+      let totalTop = tableTop + 38 + completedSales.length * 12;
+      if (totalDiscount > 0) {
         invoice.setTextColor(180, 83, 9);
         invoice.text('Discount Applied', right - 55, totalTop, { align: 'right' });
-        invoice.text(`-${formatInvoiceCurrency(completedSale.discount)}`, right - 5, totalTop, { align: 'right' });
+        invoice.text(`-${formatInvoiceCurrency(totalDiscount)}`, right - 5, totalTop, { align: 'right' });
         totalTop += 9;
       }
       invoice.setFillColor(219, 234, 254);
@@ -172,7 +172,7 @@ export const MarkSoldModal: React.FC = () => {
       invoice.setFont('helvetica', 'bold');
       invoice.setFontSize(12);
       invoice.text('TOTAL PAID', right - 48, totalTop + 11, { align: 'right' });
-      invoice.text(formatInvoiceCurrency(completedSale.soldPrice), right - 5, totalTop + 11, { align: 'right' });
+      invoice.text(formatInvoiceCurrency(totalPaid), right - 5, totalTop + 11, { align: 'right' });
 
       invoice.setTextColor(100, 116, 139);
       invoice.setFont('helvetica', 'normal');
@@ -181,7 +181,7 @@ export const MarkSoldModal: React.FC = () => {
       invoice.text('Please retain this invoice for your records. All sales are subject to store terms.', left, 272);
       invoice.setDrawColor(203, 213, 225);
       invoice.line(left, 258, right, 258);
-      invoice.save(`invoice-${completedSale.id}.pdf`);
+      invoice.save(`invoice-${firstSale.id}.pdf`);
     } catch {
       setErrorMessage('Unable to generate the invoice. Please try again.');
     } finally {
@@ -200,10 +200,10 @@ export const MarkSoldModal: React.FC = () => {
             </div>
             <div>
               <h2 className="text-base font-bold text-slate-900">
-                {completedSale ? 'Sale Completed!' : 'Mark Item as SOLD'}
+                {completedSales.length > 0 ? 'Sale Completed!' : 'Checkout Cart'}
               </h2>
               <p className="text-xs text-slate-500">
-                {completedSale ? 'Transaction recorded to inventory & Google Sheets' : `Selling item ${item.code} (${item.name})`}
+                {completedSales.length > 0 ? 'Transaction recorded to inventory & Google Sheets' : `${cart.length} item${cart.length === 1 ? '' : 's'} ready for checkout`}
               </p>
             </div>
           </div>
@@ -217,7 +217,7 @@ export const MarkSoldModal: React.FC = () => {
         </div>
 
         {/* Content */}
-        {!completedSale ? (
+        {completedSales.length === 0 ? (
           <form onSubmit={handleConfirmSale} className="flex-1 overflow-y-auto p-6 space-y-5">
             {/* Item Summary Card */}
             <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-center gap-4">
@@ -254,58 +254,17 @@ export const MarkSoldModal: React.FC = () => {
               </div>
             )}
 
-            {/* Financial Details (Sold Price + Discount Validation) */}
             <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-200/80 space-y-3">
-              <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider">
-                Selling Price (Rs.) <span className="text-rose-500">*</span>
-              </label>
-              <button
-                type="button"
-                onClick={() => {
-                  const next = !discountApplied;
-                  setDiscountApplied(next);
-                  setSoldPrice(next ? Math.max(0, item.sellingPrice - item.maxDiscount) : item.sellingPrice);
-                }}
-                disabled={!hasPromotion}
-                className={`px-3 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${discountApplied ? 'bg-emerald-600 text-white' : hasPromotion ? 'bg-fuchsia-500 text-white shadow-md shadow-fuchsia-500/20' : 'bg-slate-200 text-slate-500 cursor-not-allowed'}`}
-              >
-                {discountButtonLabel}{hasPromotion && !discountApplied ? ` (up to ${formatCurrency(item.maxDiscount)})` : ''}
-              </button>
-              
-              <div className="relative">
-                <input
-                  type="number"
-                  id="mark-sold-price-input"
-                  value={soldPrice}
-                  onChange={(e) => setSoldPrice(Math.min(item.sellingPrice, Math.max(0, Number(e.target.value))))}
-                  min={0}
-                  max={item.sellingPrice}
-                  className="w-full px-4 py-2.5 bg-white border border-blue-300 rounded-xl font-mono font-bold text-lg text-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                />
-              </div>
-
-              {/* Discount Indicator */}
-              <div className="flex items-center justify-between text-xs pt-1">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-slate-600">Calculated Discount:</span>
-                  <span className={`font-mono font-bold ${
-                    discount > 0 ? (isDiscountOverLimit ? 'text-rose-600' : 'text-amber-600') : 'text-slate-500'
-                  }`}>
-                    {formatCurrency(discount)}
-                  </span>
+              <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Cart Items &amp; Discounts</h3>
+              {cart.map(line => (
+                <div key={line.item.id} className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-2 text-xs">
+                  <div className="min-w-0"><div className="font-bold truncate">{line.item.code} - {line.item.name}</div><div className="text-slate-500">{formatCurrency(line.item.sellingPrice)} each</div></div>
+                  <input aria-label={`Quantity for ${line.item.code}`} type="number" min={1} max={line.item.quantity ?? 1} value={line.quantity} onChange={e => updateCartLine(line.item.id, { quantity: Number(e.target.value) || 1 })} className="w-16 px-2 py-1.5 rounded-lg border border-slate-200 font-mono" />
+                  <input aria-label={`Discount for ${line.item.code}`} type="number" min={0} value={line.discount} onChange={e => updateCartLine(line.item.id, { discount: Number(e.target.value) || 0 })} className="w-24 px-2 py-1.5 rounded-lg border border-slate-200 font-mono text-amber-700" />
+                  <button type="button" onClick={() => removeCartLine(line.item.id)} className="text-rose-600 font-bold cursor-pointer" aria-label={`Remove ${line.item.code}`}>Remove</button>
                 </div>
-
-                <div className="text-right text-[11px] text-slate-500">
-                  Max Permitted Discount: <strong className="text-slate-800 font-mono">{formatCurrency(item.maxDiscount)}</strong>
-                </div>
-              </div>
-
-              {isDiscountOverLimit && (
-                <p className="text-[11px] text-rose-600 font-medium">
-                  ⚠️ Discount exceeds maximum limit allowed for this item! Increase sold price to at least {formatCurrency(item.sellingPrice - item.maxDiscount)}.
-                </p>
-              )}
+              ))}
+              <div className="border-t border-blue-200 pt-2 flex justify-between text-xs"><span>Total Discount: {formatCurrency(cartDiscount)}</span><strong>Total Paid: {formatCurrency(cartTotal)}</strong></div>
             </div>
 
             {/* Customer Details per Section 26 */}
@@ -364,11 +323,11 @@ export const MarkSoldModal: React.FC = () => {
               <button
                 type="submit"
                 id="mark-sold-confirm-submit-btn"
-                disabled={isDiscountOverLimit}
+                disabled={cart.length === 0 || isCheckingOut}
                 className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold text-sm rounded-xl shadow-lg shadow-emerald-600/30 transition flex items-center justify-center gap-2 cursor-pointer"
               >
                 <CheckCircle2 className="w-5 h-5" />
-                <span>Confirm Sale &amp; Mark as SOLD</span>
+                <span>{isCheckingOut ? 'Completing Checkout...' : 'Confirm Sale &amp; Mark as SOLD'}</span>
               </button>
             </div>
           </form>
@@ -380,7 +339,7 @@ export const MarkSoldModal: React.FC = () => {
                 <CheckCircle2 className="w-7 h-7" />
               </div>
               <h3 className="text-lg font-bold text-slate-900">Sale Successfully Confirmed!</h3>
-              <p className="text-xs text-slate-500">Transaction ID: {completedSale.id}</p>
+              <p className="text-xs text-slate-500">Transaction ID: {completedSales[0].id}</p>
             </div>
             {errorMessage && (
               <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 flex items-center gap-2" role="alert">
@@ -397,48 +356,41 @@ export const MarkSoldModal: React.FC = () => {
               </div>
 
               <div className="space-y-1 text-[11px]">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Item Code:</span>
-                  <strong>{completedSale.itemCode}</strong>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Item Name:</span>
-                  <span className="truncate max-w-[200px]">{completedSale.itemName}</span>
-                </div>
+                {completedSales.map(sale => <div key={sale.id} className="flex justify-between gap-3"><span className="text-slate-500">Item:</span><span className="truncate max-w-[260px]">{sale.itemCode} x{sale.quantity || 1} - {sale.itemName}</span></div>)}
                 <div className="flex justify-between">
                   <span className="text-slate-500">Customer:</span>
-                  <span>{completedSale.customerName}</span>
+                  <span>{completedSales[0].customerName}</span>
                 </div>
-                {completedSale.customerId.startsWith('CUS-') && (
+                {completedSales[0].customerId.startsWith('CUS-') && (
                   <div className="flex justify-between">
                     <span className="text-slate-500">Customer Code:</span>
-                    <strong>{completedSale.customerId}</strong>
+                    <strong>{completedSales[0].customerId}</strong>
                   </div>
                 )}
                 <div className="flex justify-between">
                   <span className="text-slate-500">Employee:</span>
-                  <span>{completedSale.employeeName}</span>
+                  <span>{completedSales[0].employeeName}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500">Date:</span>
-                  <span>{new Date(completedSale.saleDate).toLocaleString()}</span>
+                  <span>{new Date(completedSales[0].saleDate).toLocaleString()}</span>
                 </div>
               </div>
 
               <div className="border-t border-slate-200 pt-2 space-y-1 text-xs">
                 <div className="flex justify-between">
                   <span>Original Price:</span>
-                  <span>{formatCurrency(completedSale.originalPrice)}</span>
+                  <span>{formatCurrency(completedSales.reduce((sum, sale) => sum + sale.originalPrice, 0))}</span>
                 </div>
-                {completedSale.discount > 0 && (
+                {completedSales.reduce((sum, sale) => sum + sale.discount, 0) > 0 && (
                   <div className="flex justify-between text-amber-700">
                     <span>Discount Applied:</span>
-                    <span>-{formatCurrency(completedSale.discount)}</span>
+                    <span>-{formatCurrency(completedSales.reduce((sum, sale) => sum + sale.discount, 0))}</span>
                   </div>
                 )}
                 <div className="flex justify-between font-bold text-sm pt-2 border-t border-slate-300 text-blue-900">
                   <span>Total Paid:</span>
-                  <span>{formatCurrency(completedSale.soldPrice)}</span>
+                  <span>{formatCurrency(completedSales.reduce((sum, sale) => sum + sale.soldPrice, 0))}</span>
                 </div>
               </div>
             </div>
@@ -454,7 +406,7 @@ export const MarkSoldModal: React.FC = () => {
                 <span>{isDownloadingInvoice ? 'Generating...' : 'Download Invoice'}</span>
               </button>
               <button
-                onClick={() => setSelectedItemForSale(null)}
+                onClick={handleClose}
                 className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl transition cursor-pointer"
               >
                 Done

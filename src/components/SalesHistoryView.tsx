@@ -317,10 +317,10 @@ export const SalesHistoryView: React.FC = () => {
                   <span className="text-slate-500">Sales Officer:</span>
                   <span>{activeReceiptSale.employeeName}</span>
                 </div>
-                {activeReceiptSale.notes && (
+                {activeReceiptSale.note && (
                   <div className="flex justify-between">
                     <span className="text-slate-500">Notes:</span>
-                    <span className="font-sans italic">{activeReceiptSale.notes}</span>
+                    <span className="font-sans italic">{activeReceiptSale.note}</span>
                   </div>
                 )}
               </div>

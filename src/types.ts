@@ -1,4 +1,4 @@
-export type UserRole = 'ADMIN';
+export type UserRole = 'ADMIN' | 'EMPLOYEE';
 
 export type UserStatus = 'ACTIVE' | 'DISABLED';
 
@@ -69,6 +69,7 @@ export interface Item {
   tags: string[]; // Tag names
   costPrice: number; // In Rs. (Admin only)
   sellingPrice: number; // In Rs.
+  quantity?: number; // Current stock quantity; legacy records default to 1.
   maxDiscount: number; // Maximum allowed discount in Rs.
   photo1?: string;
   photo2?: string;
@@ -102,6 +103,7 @@ export interface Sale {
   originalPrice: number;
   soldPrice: number;
   discount: number;
+  quantity?: number;
   cost: number; // Admin only
   profit: number; // Admin only (soldPrice - cost)
   customerId: string;
@@ -114,6 +116,12 @@ export interface Sale {
   note?: string;
 }
 
+export interface CartLine {
+  item: Item;
+  quantity: number;
+  discount: number;
+}
+
 export interface Customer {
   id: string;
   customerCode?: string;
@@ -123,6 +131,7 @@ export interface Customer {
   dateAdded: string;
   purchases: string[]; // item codes
   totalSpent: number;
+  lastPurchaseDate?: string;
 }
 
 export type CustomerRequestStatus = 'PENDING' | 'SOURCED' | 'COMPLETED' | 'CANCELLED';

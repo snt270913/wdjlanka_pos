@@ -13,6 +13,7 @@ import {
   BusinessSettings, 
   ItemStatus, 
   ItemCondition 
+  , CartLine
 } from '../types';
 import { 
   INITIAL_CATEGORIES, 
@@ -48,6 +49,13 @@ interface AppContextType {
     customerPhone: string, 
     note?: string
   ) => Promise<{ success: boolean; message: string; sale?: Sale }>;
+  cart: CartLine[];
+  isCartOpen: boolean;
+  addItemToCart: (item: Item) => void;
+  updateCartLine: (itemId: string, updates: Partial<Pick<CartLine, 'quantity' | 'discount'>>) => void;
+  removeCartLine: (itemId: string) => void;
+  clearCart: () => void;
+  checkoutCart: (customerName: string, customerPhone: string, note?: string) => Promise<{ success: boolean; message: string; sales: Sale[] }>;
   toggleReserveItem: (itemId: string) => Promise<void>;
   generateNextItemCode: (categoryId: string) => string;
   getItemByCode: (code: string) => Item | undefined;
@@ -116,6 +124,7 @@ interface AppContextType {
   
   // Label Printing Selection
   selectedLabelItemCodes: string[];
+  setSelectedLabelItemCodes: React.Dispatch<React.SetStateAction<string[]>>;
   toggleLabelSelection: (code: string) => void;
   selectAllLabels: (codes: string[]) => void;
   clearLabelSelection: () => void;
@@ -190,7 +199,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [isGlobalSearchOpen, setIsGlobalSearchOpen] = useState(false);
   const [isRecycleBinOpen, setIsRecycleBinOpen] = useState(false);
   const [isGoogleSheetsModalOpen, setIsGoogleSheetsModalOpen] = useState(false);
-  const [selectedItemForSale, setSelectedItemForSale] = useState<Item | null>(null);
+  const [selectedItemForSale, setSelectedItemForSaleState] = useState<Item | null>(null);
+  const [cart, setCart] = useState<CartLine[]>([]);
+  const [isCartOpen, setIsCartOpen] = useState(false);
   const [selectedLabelItemCodes, setSelectedLabelItemCodes] = useState<string[]>(['B001', 'B002', 'M001', 'M003', 'H001', 'E001']);
 
   useEffect(() => {
@@ -210,7 +221,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       loadSupabaseCollection<CustomerRequest>('customer_requests'),
     ]).then(([cloudItems, cloudCategories, cloudSales, cloudCustomers, cloudRequests]) => {
       if (cancelled) return;
-      setItems(cloudItems || []);
+      setItems((cloudItems || []).map(item => ({ ...item, quantity: item.quantity ?? 1 })));
       setCategories(cloudCategories || []);
       setSales(cloudSales || []);
       setCustomers(cloudCustomers || []);
@@ -304,6 +315,43 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (!code) return undefined;
     const cleanCode = code.trim().toUpperCase();
     return items.find(i => i.code.toUpperCase() === cleanCode && i.status !== 'DELETED');
+  };
+
+  const addItemToCart = (item: Item) => {
+    if (item.status !== 'AVAILABLE' || (item.quantity ?? 1) < 1) return;
+    setCart(prev => {
+      const existing = prev.find(line => line.item.id === item.id);
+      if (existing) {
+        return prev.map(line => line.item.id === item.id
+          ? { ...line, quantity: Math.min(line.quantity + 1, item.quantity ?? 1) }
+          : line);
+      }
+      return [...prev, { item, quantity: 1, discount: 0 }];
+    });
+    setSelectedItemForSaleState(item);
+    setIsCartOpen(true);
+  };
+
+  const updateCartLine = (itemId: string, updates: Partial<Pick<CartLine, 'quantity' | 'discount'>>) => {
+    setCart(prev => prev.map(line => line.item.id === itemId
+      ? { ...line, ...updates, quantity: Math.max(1, Math.min(updates.quantity ?? line.quantity, line.item.quantity ?? 1)), discount: Math.max(0, updates.discount ?? line.discount) }
+      : line));
+  };
+
+  const removeCartLine = (itemId: string) => setCart(prev => prev.filter(line => line.item.id !== itemId));
+  const clearCart = () => {
+    setCart([]);
+    setSelectedItemForSaleState(null);
+    setIsCartOpen(false);
+  };
+
+  const setSelectedItemForSale = (item: Item | null) => {
+    if (!item) {
+      setSelectedItemForSaleState(null);
+      setIsCartOpen(false);
+      return;
+    }
+    addItemToCart(item);
   };
 
   // Add Item
@@ -401,14 +449,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     const discount = Math.max(0, target.sellingPrice - soldPrice);
     
-    // Strict maximum discount guard
-    if (discount > target.maxDiscount) {
-      return { 
-        success: false, 
-        message: `Discount Rs. ${discount.toLocaleString()} exceeds maximum permitted discount of Rs. ${target.maxDiscount.toLocaleString()}!` 
-      };
-    }
-
     const profit = soldPrice - target.costPrice;
     const nowIso = new Date().toISOString();
 
@@ -501,6 +541,68 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       message: `Item ${target.code} marked as SOLD successfully!`,
       sale: newSale 
     };
+  };
+
+  const checkoutCart = async (customerName: string, customerPhone: string, note?: string): Promise<{ success: boolean; message: string; sales: Sale[] }> => {
+    if (cart.length === 0) return { success: false, message: 'Your cart is empty.', sales: [] };
+    const nowIso = new Date().toISOString();
+    const cleanCustomerName = customerName.trim();
+    const cleanCustomerPhone = customerPhone.trim();
+    const isWalkIn = !cleanCustomerName && !cleanCustomerPhone;
+    const dateCode = nowIso.slice(0, 10).replace(/-/g, '');
+    const sequence = customers.filter(c => (c.customerCode || c.id).startsWith(`CUS-${dateCode}-`)).length + 1;
+    const customerCode = isWalkIn ? `CUS-${dateCode}-${String(sequence).padStart(3, '0')}` : undefined;
+    const resolvedCustomerName = cleanCustomerName || `Walk-in Customer ${customerCode}`;
+    const resolvedCustomerPhone = cleanCustomerPhone || 'N/A';
+    const existingCustomer = cleanCustomerPhone
+      ? customers.find(c => c.phone.replace(/\s+/g, '') === cleanCustomerPhone.replace(/\s+/g, ''))
+      : undefined;
+    const customerId = existingCustomer?.id || customerCode || `cust-${Date.now()}`;
+    const totalPaid = cart.reduce((sum, line) => sum + line.item.sellingPrice * line.quantity - line.discount, 0);
+    const purchasedCodes = cart.flatMap(line => Array.from({ length: line.quantity }, () => line.item.code));
+    const nextCustomer: Customer = existingCustomer
+      ? { ...existingCustomer, purchases: [...existingCustomer.purchases, ...purchasedCodes], totalSpent: existingCustomer.totalSpent + totalPaid, notes: note ? `${existingCustomer.notes || ''} | ${note}` : existingCustomer.notes }
+      : { id: customerId, customerCode, name: resolvedCustomerName, phone: resolvedCustomerPhone, notes: note, dateAdded: nowIso.split('T')[0], purchases: purchasedCodes, totalSpent: totalPaid };
+    const salesToSave: Sale[] = cart.map((line, index) => {
+      const originalPrice = line.item.sellingPrice * line.quantity;
+      const soldPrice = Math.max(0, originalPrice - line.discount);
+      return {
+        id: `sale-${Date.now()}-${index}`,
+        itemId: line.item.id,
+        itemCode: line.item.code,
+        itemName: line.item.name,
+        categoryId: line.item.categoryId,
+        categoryName: line.item.categoryName,
+        originalPrice,
+        soldPrice,
+        discount: line.discount,
+        quantity: line.quantity,
+        cost: line.item.costPrice * line.quantity,
+        profit: soldPrice - line.item.costPrice * line.quantity,
+        customerId,
+        customerName: resolvedCustomerName,
+        customerPhone: resolvedCustomerPhone,
+        employeeId: currentUser?.id || 'emp-anon',
+        employeeName: currentUser?.name || 'Employee',
+        saleDate: nowIso,
+        note,
+      };
+    });
+    const updatedItems = cart.map(line => {
+      const remaining = Math.max(0, (line.item.quantity ?? 1) - line.quantity);
+      return { ...line.item, quantity: remaining, status: remaining === 0 ? 'SOLD' as const : line.item.status, soldDate: remaining === 0 ? nowIso.split('T')[0] : line.item.soldDate, soldPrice: remaining === 0 ? line.item.sellingPrice - line.discount : line.item.soldPrice, soldDiscount: remaining === 0 ? line.discount : line.item.soldDiscount, soldCustomerId: remaining === 0 ? customerId : line.item.soldCustomerId, soldCustomerName: remaining === 0 ? resolvedCustomerName : line.item.soldCustomerName, soldEmployeeId: remaining === 0 ? currentUser?.id || 'emp-anon' : line.item.soldEmployeeId, soldEmployeeName: remaining === 0 ? currentUser?.name || 'Employee' : line.item.soldEmployeeName, soldNote: remaining === 0 ? note : line.item.soldNote };
+    });
+    if (existingCustomer) await updateSupabaseRecord('customers', nextCustomer);
+    else await insertSupabaseRecord('customers', nextCustomer);
+    for (const sale of salesToSave) await insertSupabaseRecord('sales', sale);
+    for (const updatedItem of updatedItems) await updateSupabaseRecord('items', updatedItem);
+    setCustomers(prev => existingCustomer ? prev.map(customer => customer.id === existingCustomer.id ? nextCustomer : customer) : [nextCustomer, ...prev]);
+    setSales(prev => [...salesToSave, ...prev]);
+    setItems(prev => prev.map(item => updatedItems.find(updated => updated.id === item.id) || item));
+    setCart([]);
+    setSelectedItemForSaleState(null);
+    setIsCartOpen(false);
+    return { success: true, message: `${salesToSave.length} item${salesToSave.length === 1 ? '' : 's'} sold successfully.`, sales: salesToSave };
   };
 
   // Category management
@@ -850,6 +952,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         restoreItem,
         permanentlyDeleteItem,
         markItemAsSold,
+        cart,
+        isCartOpen,
+        addItemToCart,
+        updateCartLine,
+        removeCartLine,
+        clearCart,
+        checkoutCart,
         toggleReserveItem,
         generateNextItemCode,
         getItemByCode,
@@ -900,6 +1009,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         selectedItemForSale,
         setSelectedItemForSale,
         selectedLabelItemCodes,
+        setSelectedLabelItemCodes,
         toggleLabelSelection,
         selectAllLabels,
         clearLabelSelection,

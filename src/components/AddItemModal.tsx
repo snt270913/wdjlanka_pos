@@ -52,6 +52,7 @@ export const AddItemModal: React.FC = () => {
   const [costPrice, setCostPrice] = useState<number>(50000);
   const [sellingPrice, setSellingPrice] = useState<number>(75000);
   const [maxDiscount, setMaxDiscount] = useState<number>(5000);
+  const [quantity, setQuantity] = useState<number>(1);
 
   const [photo1, setPhoto1] = useState('');
   const [photo2, setPhoto2] = useState('');
@@ -157,6 +158,7 @@ export const AddItemModal: React.FC = () => {
       costPrice: Number(costPrice) || 0,
       sellingPrice: Number(sellingPrice) || 0,
       maxDiscount: Number(maxDiscount) || 0,
+      quantity: Math.max(1, Number(quantity) || 1),
       photo1: photo1.trim() || undefined,
       photo2: photo2.trim() || undefined,
       });
@@ -422,7 +424,19 @@ export const AddItemModal: React.FC = () => {
               Financial Information & Discount Limits
             </h3>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Quantity</label>
+                <input
+                  type="number"
+                  id="add-item-quantity-input"
+                  value={quantity}
+                  onChange={(e) => setQuantity(Math.max(1, Number(e.target.value) || 1))}
+                  min={1}
+                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl font-mono font-bold text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
               {/* Cost Price */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">

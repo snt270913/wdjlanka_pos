@@ -3,8 +3,10 @@
 create table if not exists public.items (
   id text primary key,
   data jsonb not null,
+  quantity integer not null default 1 check (quantity >= 0),
   updated_at timestamptz not null default now()
 );
+alter table public.items add column if not exists quantity integer not null default 1;
 create table if not exists public.categories (
   id text primary key,
   data jsonb not null,
