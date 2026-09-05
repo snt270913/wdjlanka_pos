@@ -328,16 +328,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           ? { ...line, quantity: Math.min(line.quantity + 1, item.quantity ?? 1) }
           : line);
       }
-      return [...prev, { item, quantity: 1, discount: Math.max(0, item.maxDiscount || 0), discountEnabled: true }];
+      return [...prev, { item, quantity: 1, discount: 0, discountEnabled: false }];
     });
     setSelectedItemForSaleState(item);
     setIsCartOpen(true);
   };
 
   const updateCartLine = (itemId: string, updates: Partial<Pick<CartLine, 'quantity' | 'discount' | 'discountEnabled'>>) => {
-    setCart(prev => prev.map(line => line.item.id === itemId
-      ? { ...line, ...updates, quantity: Math.max(1, Math.min(updates.quantity ?? line.quantity, line.item.quantity ?? 1)), discount: Math.max(0, updates.discount ?? line.discount) }
-      : line));
+    setCart(prev => prev.map(line => {
+      if (line.item.id !== itemId) return line;
+      const discountEnabled = updates.discountEnabled ?? line.discountEnabled;
+      const discount = updates.discount ?? (discountEnabled && !line.discountEnabled ? Math.max(0, line.item.maxDiscount || 0) : line.discount);
+      return { ...line, ...updates, discountEnabled, quantity: Math.max(1, Math.min(updates.quantity ?? line.quantity, line.item.quantity ?? 1)), discount: Math.max(0, discount) };
+    }));
   };
 
   const removeCartLine = (itemId: string) => setCart(prev => prev.filter(line => line.item.id !== itemId));
