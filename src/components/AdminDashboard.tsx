@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { getItemImageUrl } from '../data/supabaseSync';
 import { useApp } from '../context/AppContext';
 import { DateFilterOption, Item } from '../types';
 import { 
@@ -334,7 +335,7 @@ export const AdminDashboard: React.FC = () => {
             <div className="flex items-center gap-3.5 min-w-0">
               <div className="w-16 h-16 rounded-2xl bg-white border border-slate-200 overflow-hidden shrink-0 flex items-center justify-center shadow-2xs">
                 {searchedItem.photo1 ? (
-                  <img src={searchedItem.photo1} alt={searchedItem.name} className="w-full h-full object-cover" />
+                  <img src={getItemImageUrl(searchedItem.photo1)} alt={searchedItem.name} className="w-full h-full object-cover" />
                 ) : (
                   <span className="font-mono font-bold text-xs text-slate-400">{searchedItem.code}</span>
                 )}

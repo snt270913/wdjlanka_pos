@@ -7,13 +7,13 @@ import {
   CheckCircle2, 
   AlertCircle, 
   User, 
-  Phone, 
   FileText, 
   Printer, 
   Sparkles,
   Building2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { getItemImageUrl } from '../data/supabaseSync';
 
 export const MarkSoldModal: React.FC = () => {
   const { 
@@ -132,7 +132,7 @@ export const MarkSoldModal: React.FC = () => {
             <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-center gap-4">
               <div className="w-16 h-16 rounded-xl bg-white border border-slate-200 overflow-hidden shrink-0 shadow-2xs">
                 {item.photo1 ? (
-                  <img src={item.photo1} alt={item.name} className="w-full h-full object-cover" />
+                  <img src={getItemImageUrl(item.photo1)} alt={item.name} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center font-mono font-bold text-xs text-slate-400">
                     {item.code}
@@ -240,22 +240,6 @@ export const MarkSoldModal: React.FC = () => {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Phone Number <span className="text-slate-400 font-normal">(Optional)</span>
-                </label>
-                <div className="relative">
-                  <Phone className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    id="mark-sold-customer-phone-input"
-                    value={customerPhone}
-                    onChange={(e) => setCustomerPhone(e.target.value)}
-                    placeholder="e.g. 077 123 4567 / 071 987 6543"
-                    className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white"
-                  />
-                </div>
-              </div>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -313,7 +297,6 @@ export const MarkSoldModal: React.FC = () => {
               <div className="text-center border-b border-slate-200 pb-3">
                 <div className="font-bold text-sm uppercase tracking-wider">{settings.companyName}</div>
                 <div className="text-[10px] text-slate-500">{settings.tagline}</div>
-                <div className="text-[10px] text-slate-500">{settings.phone}</div>
               </div>
 
               <div className="space-y-1 text-[11px]">
@@ -327,7 +310,7 @@ export const MarkSoldModal: React.FC = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500">Customer:</span>
-                  <span>{completedSale.customerName} ({completedSale.customerPhone})</span>
+                  <span>{completedSale.customerName}</span>
                 </div>
                 {completedSale.customerId.startsWith('CUS-') && (
                   <div className="flex justify-between">

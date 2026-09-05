@@ -36,8 +36,16 @@ export const uploadItemImage = async (file: File): Promise<string | null> => {
   const { error } = await supabase.storage.from('item-images').upload(path, file, { upsert: false, contentType: file.type });
   if (error) {
     console.error('Unable to upload item image', error);
-    return null;
+    throw error;
   }
   const { data } = supabase.storage.from('item-images').getPublicUrl(path);
+  if (!data.publicUrl) throw new Error('Supabase did not return a public image URL.');
   return data.publicUrl;
+};
+
+export const getItemImageUrl = (imageValue?: string): string | undefined => {
+  if (!imageValue) return undefined;
+  if (imageValue.startsWith('data:') || /^https?:\/\//i.test(imageValue)) return imageValue;
+  if (!supabase) return imageValue;
+  return supabase.storage.from('item-images').getPublicUrl(imageValue).data.publicUrl;
 };

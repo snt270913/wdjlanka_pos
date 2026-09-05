@@ -47,8 +47,8 @@ export const CustomerRequestsView: React.FC = () => {
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    if (!customerName.trim() || !customerPhone.trim() || !itemName.trim() || quantity < 1) return;
-    addCustomerRequest({ customerName: customerName.trim(), customerPhone: customerPhone.trim(), itemName: itemName.trim(), quantity, notes: notes.trim() || undefined });
+    if (!customerName.trim() || !itemName.trim() || quantity < 1) return;
+    addCustomerRequest({ customerName: customerName.trim(), customerPhone: '', itemName: itemName.trim(), quantity, notes: notes.trim() || undefined });
     resetForm();
     setIsFormOpen(false);
   };
@@ -69,7 +69,7 @@ export const CustomerRequestsView: React.FC = () => {
       </div>
 
       <div className="bg-slate-900 rounded-3xl border border-slate-800 p-4 flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search customer, phone, or requested item" className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-10 pr-3 py-2.5 text-xs text-white outline-none focus:border-cyan-400" /></div>
+        <div className="relative flex-1"><Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search customer or requested item" className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-10 pr-3 py-2.5 text-xs text-white outline-none focus:border-cyan-400" /></div>
         <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value as typeof statusFilter)} className="bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-xs text-slate-200 outline-none focus:border-cyan-400"><option value="ALL">All Statuses</option>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>
       </div>
 

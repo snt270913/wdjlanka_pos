@@ -134,24 +134,24 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('wdj_dark_mode') === 'true');
-  // Load from localStorage or seed
+  // Authentication preferences remain local; operational records are never seeded.
   const [currentUser, setCurrentUser] = useState<User | null>(() => {
     if (!localStorage.getItem('wdj_admin_pin')) {
       localStorage.setItem('wdj_admin_pin', '1234');
     }
     const saved = localStorage.getItem('wdj_current_user');
     return localStorage.getItem('wdj_admin_authenticated') === 'true' && saved
-      ? { ...JSON.parse(saved), name: 'WDJLANKA Admin', username: 'wdjlanka' }
+      ? { ...JSON.parse(saved), username: 'wdjlanka' }
       : null;
   });
 
   const [items, setItems] = useState<Item[]>(() => {
-    return localDataSync.load('wdj_items_v2', INITIAL_ITEMS);
+    return hasSupabase() ? [] : localDataSync.load('wdj_items_v2', []);
   });
 
   const [categories, setCategories] = useState<Category[]>(() => {
     const saved = localStorage.getItem('wdj_categories_v2');
-    return saved ? JSON.parse(saved) : INITIAL_CATEGORIES;
+    return hasSupabase() ? [] : (saved ? JSON.parse(saved) : []);
   });
 
   const [tags, setTags] = useState<Tag[]>(() => {
@@ -160,11 +160,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   });
 
   const [sales, setSales] = useState<Sale[]>(() => {
-    return localDataSync.load('wdj_sales_v2', INITIAL_SALES);
+    return hasSupabase() ? [] : localDataSync.load('wdj_sales_v2', []);
   });
 
   const [customers, setCustomers] = useState<Customer[]>(() => {
-    return localDataSync.load('wdj_customers_v2', INITIAL_CUSTOMERS);
+    return hasSupabase() ? [] : localDataSync.load('wdj_customers_v2', []);
   });
 
   const [customerRequests, setCustomerRequests] = useState<CustomerRequest[]>(() => {
@@ -216,10 +216,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     ]).then(([cloudItems, cloudCategories, cloudSales, cloudCustomers, cloudRequests]) => {
       if (cancelled) return;
       if (cloudItems) setItems(cloudItems);
-      if (cloudCategories) setCategories(cloudCategories);
-      if (cloudSales) setSales(cloudSales);
-      if (cloudCustomers) setCustomers(cloudCustomers);
-      if (cloudRequests) setCustomerRequests(cloudRequests);
+      setItems(cloudItems || []);
+      setCategories(cloudCategories || []);
+      setSales(cloudSales || []);
+      setCustomers(cloudCustomers || []);
+      setCustomerRequests(cloudRequests || []);
       setSupabaseHydrated(true);
     });
     return () => { cancelled = true; };
@@ -786,7 +787,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (username.trim().toLowerCase() !== 'wdjlanka' || pin !== storedPin) {
       return { success: false, message: 'Invalid Username or PIN. Access Denied.' };
     }
-    const adminUser = { ...INITIAL_USERS[0], name: 'WDJLANKA Admin', username: 'wdjlanka' };
+    const adminUser: User = { id: 'local-admin', name: 'Administrator', username: 'wdjlanka', password: '', role: 'ADMIN', status: 'ACTIVE', dateCreated: new Date().toISOString() };
     localStorage.setItem('wdj_admin_authenticated', 'true');
     window.setTimeout(() => {
       setCurrentUser(adminUser);
@@ -818,7 +819,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setSelectedLabelItemCodes([]);
   };
 
-  // Reset to initial seed
+  // Clear all operational records and leave the database empty.
   const resetAllDataToDefault = () => {
     setItems([]);
     setTags(INITIAL_TAGS);

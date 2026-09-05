@@ -26,6 +26,7 @@ import {
   , Printer
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
+import { getItemImageUrl } from '../data/supabaseSync';
 
 export const ItemsView: React.FC = () => {
   const { 
@@ -132,8 +133,8 @@ export const ItemsView: React.FC = () => {
     }
   };
 
-  const copyItemDetails = async (item: Item) => {
-    const details = `Item Code: ${item.code}\nItem Name: ${item.name}\nCategory: ${item.categoryName}\nSelling Price: ${formatCurrency(item.sellingPrice)}`;
+  const copyItemCode = async (item: Item) => {
+    const details = item.code;
     try {
       await navigator.clipboard.writeText(details);
     } catch {
@@ -144,7 +145,7 @@ export const ItemsView: React.FC = () => {
       document.execCommand('copy');
       textarea.remove();
     }
-    setCopyMessage(`${item.code} details copied`);
+    setCopyMessage(`${item.code} copied`);
     window.setTimeout(() => setCopyMessage(null), 1800);
   };
 
@@ -442,7 +443,7 @@ export const ItemsView: React.FC = () => {
                     <tr 
                       key={item.id} 
                       onClick={(event) => {
-                        if (!(event.target as HTMLElement).closest('button, input, select, a')) void copyItemDetails(item);
+                        if (!(event.target as HTMLElement).closest('button, input, select, a')) void copyItemCode(item);
                       }}
                       className={`hover:bg-slate-50/80 transition ${
                         item.status === 'SOLD' ? 'bg-slate-50/40 text-slate-400' : ''
@@ -470,7 +471,7 @@ export const ItemsView: React.FC = () => {
                             className="w-12 h-12 rounded-2xl bg-slate-100 border border-slate-200 overflow-hidden shrink-0 cursor-pointer shadow-2xs group relative"
                           >
                             {item.photo1 ? (
-                              <img src={item.photo1} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition" />
+                              <img src={getItemImageUrl(item.photo1)} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition" />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center p-1">
                                 <QRCodeSVG value={`/item/${item.code}`} size={36} />
@@ -480,7 +481,7 @@ export const ItemsView: React.FC = () => {
 
                           <div>
                             <div className="flex items-center gap-2">
-                              <button type="button" onClick={() => copyItemDetails(item)} className="font-mono font-bold text-xs bg-blue-50 text-blue-800 px-1.5 py-0.5 rounded-lg border border-blue-200/50 cursor-pointer">
+                              <button type="button" onClick={() => copyItemCode(item)} className="font-mono font-bold text-xs bg-blue-50 text-blue-800 px-1.5 py-0.5 rounded-lg border border-blue-200/50 cursor-pointer">
                                 {item.code}
                               </button>
                               <button
@@ -644,7 +645,7 @@ export const ItemsView: React.FC = () => {
                   {/* Photo & Status Header */}
                   <div className="relative aspect-4/3 bg-slate-100 overflow-hidden">
                     {item.photo1 ? (
-                      <img src={item.photo1} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+                      <img src={getItemImageUrl(item.photo1)} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center p-4">
                         <QRCodeSVG value={`/item/${item.code}`} size={80} />

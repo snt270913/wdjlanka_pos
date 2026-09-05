@@ -94,8 +94,6 @@ export const CustomerDirectoryView: React.FC = () => {
                         {customer.name}
                       </h3>
                       <div className="text-xs text-slate-500 font-mono flex items-center gap-1 mt-0.5">
-                        <Phone className="w-3 h-3 text-slate-400" />
-                        <span>{customer.phone}</span>
                       </div>
                       {customer.customerCode && <div className="text-[10px] text-blue-600 font-mono mt-0.5">{customer.customerCode}</div>}
                     </div>
@@ -143,7 +141,6 @@ export const CustomerDirectoryView: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-slate-900">{selectedCustomer.name}</h3>
-                  <p className="text-xs text-slate-500 font-mono">{selectedCustomer.phone}</p>
                 </div>
               </div>
 

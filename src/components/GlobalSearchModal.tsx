@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
+import { getItemImageUrl } from '../data/supabaseSync';
 import { 
   Search, 
   X, 
@@ -202,7 +203,7 @@ export const GlobalSearchModal: React.FC = () => {
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-10 h-10 rounded-lg bg-slate-100 overflow-hidden border border-slate-200 shrink-0">
                         {item.photo1 ? (
-                          <img src={item.photo1} alt={item.name} className="w-full h-full object-cover" />
+                          <img src={getItemImageUrl(item.photo1)} alt={item.name} className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-[10px] font-bold text-slate-400">
                             {item.code}

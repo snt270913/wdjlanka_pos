@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { readAndCompressImage } from '../utils/imageUtils';
-import { uploadItemImage } from '../data/supabaseSync';
+import { getItemImageUrl, uploadItemImage } from '../data/supabaseSync';
 
 export const AddItemModal: React.FC = () => {
   const { 
@@ -109,7 +109,7 @@ export const AddItemModal: React.FC = () => {
   const handlePhotoChange = async (file: File | undefined, setPhoto: (value: string) => void) => {
     if (!file) return;
     try {
-      setPhoto((await uploadItemImage(file)) || await readAndCompressImage(file));
+      setPhoto(await uploadItemImage(file) || await readAndCompressImage(file));
     } catch {
       setPhoto('');
     }
@@ -478,7 +478,7 @@ export const AddItemModal: React.FC = () => {
                 />
                 {photo1 && (
                   <div className="mt-2 w-full h-28 rounded-xl bg-slate-100 overflow-hidden border border-slate-200">
-                    <img src={photo1} alt="Preview 1" className="w-full h-full object-cover" />
+                    <img src={getItemImageUrl(photo1)} alt="Preview 1" className="w-full h-full object-cover" />
                   </div>
                 )}
               </div>
@@ -493,7 +493,7 @@ export const AddItemModal: React.FC = () => {
                 />
                 {photo2 && (
                   <div className="mt-2 w-full h-28 rounded-xl bg-slate-100 overflow-hidden border border-slate-200">
-                    <img src={photo2} alt="Preview 2" className="w-full h-full object-cover" />
+                    <img src={getItemImageUrl(photo2)} alt="Preview 2" className="w-full h-full object-cover" />
                   </div>
                 )}
               </div>

@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
+import html2canvas from 'html2canvas';
 import { useApp } from '../context/AppContext';
 import { Sale } from '../types';
 import { 
@@ -32,6 +33,28 @@ export const SalesHistoryView: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] = useState<string>('ALL');
   const [selectedEmployee, setSelectedEmployee] = useState<string>('ALL');
   const [activeReceiptSale, setActiveReceiptSale] = useState<Sale | null>(null);
+  const receiptRef = useRef<HTMLDivElement>(null);
+
+  const downloadReceipt = async () => {
+    if (!receiptRef.current || !activeReceiptSale) return;
+    const images = Array.from(receiptRef.current.querySelectorAll('img')) as HTMLImageElement[];
+    await Promise.all(images.map(image => image.complete
+      ? Promise.resolve()
+      : new Promise<void>(resolve => {
+          image.addEventListener('load', () => resolve(), { once: true });
+          image.addEventListener('error', () => resolve(), { once: true });
+        })));
+    const canvas = await html2canvas(receiptRef.current, {
+      backgroundColor: '#ffffff',
+      scale: Math.min(window.devicePixelRatio || 1, 2),
+      useCORS: true,
+      logging: false,
+    });
+    const link = document.createElement('a');
+    link.download = `receipt-${activeReceiptSale.id}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  };
 
   // Filter sales
   const filteredSales = useMemo(() => {
@@ -215,7 +238,6 @@ export const SalesHistoryView: React.FC = () => {
                     </td>
                     <td className="p-3.5 font-sans">
                       <div className="font-semibold text-slate-800">{sale.customerName}</div>
-                      <div className="text-[11px] text-slate-500 font-mono">{sale.customerPhone}</div>
                     </td>
                     <td className="p-3.5 font-bold text-slate-900 text-xs">
                       {formatCurrency(sale.soldPrice)}
@@ -268,11 +290,10 @@ export const SalesHistoryView: React.FC = () => {
               </button>
             </div>
 
-            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 font-mono text-xs text-slate-800 space-y-3">
+            <div ref={receiptRef} className="p-4 bg-white rounded-2xl border border-slate-200 font-mono text-xs text-slate-800 space-y-3">
               <div className="text-center border-b border-slate-200 pb-2">
                 <div className="font-bold text-sm uppercase">{settings.companyName}</div>
                 <div className="text-[10px] text-slate-500">{settings.tagline}</div>
-                <div className="text-[10px] text-slate-500">{settings.phone}</div>
               </div>
 
               <div className="space-y-1 text-[11px]">
@@ -290,7 +311,7 @@ export const SalesHistoryView: React.FC = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500">Customer:</span>
-                  <span className="font-sans">{activeReceiptSale.customerName} ({activeReceiptSale.customerPhone})</span>
+                  <span className="font-sans">{activeReceiptSale.customerName}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500">Sales Officer:</span>
@@ -323,6 +344,13 @@ export const SalesHistoryView: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-2">
+              <button
+                onClick={() => void downloadReceipt()}
+                className="flex-1 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Download className="w-4 h-4" />
+                <span>Download</span>
+              </button>
               <button
                 onClick={() => window.print()}
                 className="flex-1 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer"

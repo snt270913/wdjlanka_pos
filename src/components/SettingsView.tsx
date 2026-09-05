@@ -37,7 +37,6 @@ export const SettingsView: React.FC = () => {
   // Business settings state
   const [companyName, setCompanyName] = useState(settings.companyName);
   const [tagline, setTagline] = useState(settings.tagline);
-  const [phone, setPhone] = useState(settings.phone);
   const [email, setEmail] = useState(settings.email);
   const [address, setAddress] = useState(settings.address);
   const [currency, setCurrency] = useState(settings.currency);
@@ -62,7 +61,6 @@ export const SettingsView: React.FC = () => {
     updateSettings({
       companyName,
       tagline,
-      phone,
       email,
       address,
       currency,
@@ -224,15 +222,6 @@ export const SettingsView: React.FC = () => {
                 />
               </div>
 
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1.5">Contact Phone</label>
-                <input
-                  type="text"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
-                />
-              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
@@ -432,14 +421,14 @@ export const SettingsView: React.FC = () => {
 
             <button
               onClick={() => {
-                if (window.confirm('Reset all demo data back to default initial seed items?')) {
+                if (window.confirm('Clear all inventory and sales from the database? This cannot be undone.')) {
                   resetAllDataToDefault();
                 }
               }}
               className="p-4.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-2xl text-left space-y-1 transition cursor-pointer"
             >
-              <div className="font-bold text-xs text-rose-900">Reset Demo Database</div>
-              <div className="text-[10px] text-rose-700">Restore factory sample seed items</div>
+              <div className="font-bold text-xs text-rose-900">Clear Database Records</div>
+              <div className="text-[10px] text-rose-700">Remove inventory and sales records</div>
             </button>
           </div>
         </div>
