@@ -120,6 +120,7 @@ export interface CartLine {
   item: Item;
   quantity: number;
   discount: number;
+  discountEnabled: boolean;
 }
 
 export interface Customer {

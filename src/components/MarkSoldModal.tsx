@@ -53,8 +53,8 @@ export const MarkSoldModal: React.FC = () => {
   if (!isCartOpen && completedSales.length === 0) return null;
 
   const item = cart[0]?.item || selectedItemForSale!;
-  const cartTotal = cart.reduce((sum, line) => sum + line.item.sellingPrice * line.quantity - line.discount, 0);
-  const cartDiscount = cart.reduce((sum, line) => sum + line.discount, 0);
+  const cartTotal = cart.reduce((sum, line) => sum + Math.max(0, line.item.sellingPrice * line.quantity - (line.discountEnabled ? line.discount : 0)), 0);
+  const cartDiscount = cart.reduce((sum, line) => sum + (line.discountEnabled ? line.discount : 0), 0);
   const handleClose = () => {
     clearCart();
     setCompletedSales([]);
@@ -262,9 +262,9 @@ export const MarkSoldModal: React.FC = () => {
               {cart.map(line => (
                 <div key={line.item.id} className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-2 text-xs">
                   <div className="min-w-0"><div className="font-bold truncate">{line.item.code} - {line.item.name}</div><div className="text-slate-500">Unit Price: {formatCurrency(line.item.sellingPrice)}</div></div>
-                  <label className="flex items-center gap-1"><span className="sr-only">Qty</span><input aria-label={`Qty for ${line.item.code}`} type="number" min={1} max={line.item.quantity ?? 1} value={line.quantity} onChange={e => updateCartLine(line.item.id, { quantity: Number(e.target.value) || 1 })} className="w-16 px-2 py-1.5 rounded-lg border border-slate-200 font-mono" /></label>
-                  <label className="flex items-center gap-1"><span className="sr-only">Discount</span><input aria-label={`Discount for ${line.item.code}`} type="number" min={0} value={line.discount} onChange={e => updateCartLine(line.item.id, { discount: Number(e.target.value) || 0 })} className="w-24 px-2 py-1.5 rounded-lg border border-slate-200 font-mono text-amber-700" /></label>
-                  <span className="font-mono font-bold text-blue-700">{formatCurrency(line.item.sellingPrice * line.quantity - line.discount)}</span>
+                  <label className="flex flex-col gap-1"><span className="text-[10px] font-bold text-slate-500">Qty</span><input aria-label={`Qty for ${line.item.code}`} type="number" min={1} max={line.item.quantity ?? 1} value={line.quantity} onChange={e => updateCartLine(line.item.id, { quantity: Number(e.target.value) || 1 })} className="w-16 px-2 py-1.5 rounded-lg border border-slate-200 font-mono" /></label>
+                  <label className="flex flex-col gap-1"><span className="flex items-center gap-1 text-[10px] font-bold text-slate-500"><span>Discount</span><input aria-label={`Enable discount for ${line.item.code}`} type="checkbox" checked={line.discountEnabled} onChange={e => updateCartLine(line.item.id, { discountEnabled: e.target.checked })} className="accent-amber-600" /></span><input aria-label={`Discount for ${line.item.code}`} type="number" min={0} value={line.discount} disabled={!line.discountEnabled} onChange={e => updateCartLine(line.item.id, { discount: Number(e.target.value) || 0 })} className="w-24 px-2 py-1.5 rounded-lg border border-slate-200 font-mono text-amber-700 disabled:bg-slate-100 disabled:text-slate-400" /></label>
+                  <span className="font-mono font-bold text-blue-700">{formatCurrency(line.item.sellingPrice * line.quantity - (line.discountEnabled ? line.discount : 0))}</span>
                   <button type="button" onClick={() => removeCartLine(line.item.id)} className="text-rose-600 font-bold cursor-pointer" aria-label={`Remove ${line.item.code}`}>Remove</button>
                 </div>
               ))}

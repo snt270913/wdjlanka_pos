@@ -139,11 +139,11 @@ export const AdminDashboard: React.FC = () => {
   }, [activeItems, selectedCategoryFilter]);
 
   const stockCost = useMemo(() => {
-    return availableItems.reduce((acc, i) => acc + i.costPrice, 0) + reservedItems.reduce((acc, i) => acc + i.costPrice, 0);
+    return availableItems.reduce((acc, i) => acc + i.costPrice * (i.quantity ?? 1), 0) + reservedItems.reduce((acc, i) => acc + i.costPrice * (i.quantity ?? 1), 0);
   }, [availableItems, reservedItems]);
 
   const stockSellingValue = useMemo(() => {
-    return availableItems.reduce((acc, i) => acc + i.sellingPrice, 0) + reservedItems.reduce((acc, i) => acc + i.sellingPrice, 0);
+    return availableItems.reduce((acc, i) => acc + i.sellingPrice * (i.quantity ?? 1), 0) + reservedItems.reduce((acc, i) => acc + i.sellingPrice * (i.quantity ?? 1), 0);
   }, [availableItems, reservedItems]);
 
   const potentialUnrealizedProfit = stockSellingValue - stockCost;
@@ -179,7 +179,7 @@ export const AdminDashboard: React.FC = () => {
   const lowStockCategories = useMemo(() => {
     return categories.map((category) => ({
       ...category,
-      availableUnits: activeItems.filter((item) => item.categoryId === category.id && (item.status === 'AVAILABLE' || item.status === 'RESERVED')).length,
+      availableUnits: activeItems.filter((item) => item.categoryId === category.id && (item.status === 'AVAILABLE' || item.status === 'RESERVED')).reduce((sum, item) => sum + (item.quantity ?? 1), 0),
     })).filter((category) => category.availableUnits > 0 && category.availableUnits < 5);
   }, [categories, activeItems]);
 
@@ -453,7 +453,7 @@ export const AdminDashboard: React.FC = () => {
           </div>
           <div className="mt-4 flex items-center justify-between">
             <div>
-              <div className="text-2xl font-black text-slate-900 font-mono">{availableItems.length}</div>
+              <div className="text-2xl font-black text-slate-900 font-mono">{availableItems.reduce((sum, item) => sum + (item.quantity ?? 1), 0)}</div>
               <div className="text-xs text-emerald-600 font-semibold flex items-center gap-1 mt-0.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-500" />
                 Available

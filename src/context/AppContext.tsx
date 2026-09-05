@@ -52,7 +52,7 @@ interface AppContextType {
   cart: CartLine[];
   isCartOpen: boolean;
   addItemToCart: (item: Item) => void;
-  updateCartLine: (itemId: string, updates: Partial<Pick<CartLine, 'quantity' | 'discount'>>) => void;
+  updateCartLine: (itemId: string, updates: Partial<Pick<CartLine, 'quantity' | 'discount' | 'discountEnabled'>>) => void;
   removeCartLine: (itemId: string) => void;
   clearCart: () => void;
   checkoutCart: (customerName: string, customerPhone: string, note?: string) => Promise<{ success: boolean; message: string; sales: Sale[] }>;
@@ -328,13 +328,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
           ? { ...line, quantity: Math.min(line.quantity + 1, item.quantity ?? 1) }
           : line);
       }
-      return [...prev, { item, quantity: 1, discount: Math.max(0, item.maxDiscount || 0) }];
+      return [...prev, { item, quantity: 1, discount: Math.max(0, item.maxDiscount || 0), discountEnabled: true }];
     });
     setSelectedItemForSaleState(item);
     setIsCartOpen(true);
   };
 
-  const updateCartLine = (itemId: string, updates: Partial<Pick<CartLine, 'quantity' | 'discount'>>) => {
+  const updateCartLine = (itemId: string, updates: Partial<Pick<CartLine, 'quantity' | 'discount' | 'discountEnabled'>>) => {
     setCart(prev => prev.map(line => line.item.id === itemId
       ? { ...line, ...updates, quantity: Math.max(1, Math.min(updates.quantity ?? line.quantity, line.item.quantity ?? 1)), discount: Math.max(0, updates.discount ?? line.discount) }
       : line));
@@ -568,14 +568,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       ? customers.find(c => c.phone.replace(/\s+/g, '') === cleanCustomerPhone.replace(/\s+/g, ''))
       : undefined;
     const customerId = existingCustomer?.id || customerCode || `cust-${Date.now()}`;
-    const totalPaid = currentCart.reduce((sum, line) => sum + line.item.sellingPrice * line.quantity - line.discount, 0);
+    const totalPaid = currentCart.reduce((sum, line) => sum + line.item.sellingPrice * line.quantity - (line.discountEnabled ? line.discount : 0), 0);
     const purchasedCodes = currentCart.flatMap(line => Array.from({ length: line.quantity }, () => line.item.code));
     const nextCustomer: Customer = existingCustomer
       ? { ...existingCustomer, purchases: [...existingCustomer.purchases, ...purchasedCodes], totalSpent: existingCustomer.totalSpent + totalPaid, notes: note ? `${existingCustomer.notes || ''} | ${note}` : existingCustomer.notes }
       : { id: customerId, customerCode, name: resolvedCustomerName, phone: resolvedCustomerPhone, notes: note, dateAdded: nowIso.split('T')[0], purchases: purchasedCodes, totalSpent: totalPaid };
     const salesToSave: Sale[] = currentCart.map((line, index) => {
       const originalPrice = line.item.sellingPrice * line.quantity;
-      const soldPrice = Math.max(0, originalPrice - line.discount);
+      const effectiveDiscount = line.discountEnabled ? line.discount : 0;
+      const soldPrice = Math.max(0, originalPrice - effectiveDiscount);
       return {
         id: `sale-${Date.now()}-${index}`,
         itemId: line.item.id,
@@ -585,7 +586,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         categoryName: line.item.categoryName,
         originalPrice,
         soldPrice,
-        discount: line.discount,
+        discount: effectiveDiscount,
         quantity: line.quantity,
         cost: line.item.costPrice * line.quantity,
         profit: soldPrice - line.item.costPrice * line.quantity,
@@ -600,7 +601,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     });
     const updatedItems = currentCart.map(line => {
       const remaining = Math.max(0, (line.item.quantity ?? 1) - line.quantity);
-      return { ...line.item, quantity: remaining, status: remaining === 0 ? 'SOLD' as const : line.item.status, soldDate: remaining === 0 ? nowIso.split('T')[0] : line.item.soldDate, soldPrice: remaining === 0 ? line.item.sellingPrice - line.discount : line.item.soldPrice, soldDiscount: remaining === 0 ? line.discount : line.item.soldDiscount, soldCustomerId: remaining === 0 ? customerId : line.item.soldCustomerId, soldCustomerName: remaining === 0 ? resolvedCustomerName : line.item.soldCustomerName, soldEmployeeId: remaining === 0 ? currentUser?.id || 'emp-anon' : line.item.soldEmployeeId, soldEmployeeName: remaining === 0 ? currentUser?.name || 'Employee' : line.item.soldEmployeeName, soldNote: remaining === 0 ? note : line.item.soldNote };
+      const effectiveDiscount = line.discountEnabled ? line.discount : 0;
+      return { ...line.item, quantity: remaining, status: remaining === 0 ? 'SOLD' as const : line.item.status, soldDate: remaining === 0 ? nowIso.split('T')[0] : line.item.soldDate, soldPrice: remaining === 0 ? Math.max(0, line.item.sellingPrice - effectiveDiscount) : line.item.soldPrice, soldDiscount: remaining === 0 ? effectiveDiscount : line.item.soldDiscount, soldCustomerId: remaining === 0 ? customerId : line.item.soldCustomerId, soldCustomerName: remaining === 0 ? resolvedCustomerName : line.item.soldCustomerName, soldEmployeeId: remaining === 0 ? currentUser?.id || 'emp-anon' : line.item.soldEmployeeId, soldEmployeeName: remaining === 0 ? currentUser?.name || 'Employee' : line.item.soldEmployeeName, soldNote: remaining === 0 ? note : line.item.soldNote };
     });
     if (existingCustomer) await updateSupabaseRecord('customers', nextCustomer);
     else await insertSupabaseRecord('customers', nextCustomer);
