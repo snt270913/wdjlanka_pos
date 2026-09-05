@@ -209,7 +209,7 @@ export const MarkSoldModal: React.FC = () => {
           </div>
 
           <button
-            onClick={() => setSelectedItemForSale(null)}
+            onClick={completedSales.length > 0 ? handleClose : () => setSelectedItemForSale(null)}
             className="p-1.5 hover:bg-slate-200 text-slate-400 hover:text-slate-700 rounded-xl transition cursor-pointer"
           >
             <X className="w-5 h-5" />

@@ -425,6 +425,7 @@ export const ItemsView: React.FC = () => {
                   </th>
                   <th className="p-3.5">Item / Code</th>
                   <th className="p-3.5">Category & Brand</th>
+                  <th className="p-3.5">Stock</th>
                   <th className="p-3.5">Condition</th>
                   <th className="p-3.5">Selling Price</th>
                   {isAdmin && <th className="p-3.5">Cost & Profit</th>}
@@ -508,6 +509,13 @@ export const ItemsView: React.FC = () => {
                         <div className="text-[11px] text-slate-500">
                           {item.brand} {item.model ? `• ${item.model}` : ''}
                         </div>
+                      </td>
+
+                      {/* Available Quantity */}
+                      <td className="p-3.5">
+                        <span className={`inline-flex min-w-16 justify-center px-2.5 py-1 rounded-lg font-mono text-xs font-bold border ${(item.quantity ?? 1) > 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>
+                          {(item.quantity ?? 1)} in stock
+                        </span>
                       </td>
 
                       {/* Condition */}
@@ -685,6 +693,10 @@ export const ItemsView: React.FC = () => {
                       <span>{item.condition}</span>
                     </div>
 
+                    <div className={`inline-flex px-2 py-1 rounded-lg border font-mono text-[10px] font-bold ${(item.quantity ?? 1) > 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>
+                      Stock: {item.quantity ?? 1}
+                    </div>
+
                     <h4 
                       onClick={() => setSelectedItemForDetail(item)}
                       className="text-xs font-bold text-slate-900 hover:text-blue-600 line-clamp-2 cursor-pointer"
@@ -753,7 +765,7 @@ export const ItemsView: React.FC = () => {
                     <div>
                       <div className="text-xs font-bold text-slate-900">{item.name}</div>
                       <div className="text-[11px] text-slate-500">
-                        Added on {item.dateAdded} • {item.categoryName} • Status: <strong>{item.status}</strong>
+                        Added on {item.dateAdded} • {item.categoryName} • Stock: <strong>{item.quantity ?? 1}</strong> • Status: <strong>{item.status}</strong>
                       </div>
                     </div>
                   </div>

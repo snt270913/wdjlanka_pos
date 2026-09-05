@@ -226,6 +226,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setSales(cloudSales || []);
       setCustomers(cloudCustomers || []);
       setCustomerRequests(cloudRequests || []);
+    }).catch(error => {
+      if (!cancelled) console.error('Unable to hydrate POS data from Supabase', error);
     });
     return () => { cancelled = true; };
   }, []);
@@ -545,6 +547,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const checkoutCart = async (customerName: string, customerPhone: string, note?: string): Promise<{ success: boolean; message: string; sales: Sale[] }> => {
     if (cart.length === 0) return { success: false, message: 'Your cart is empty.', sales: [] };
+    const currentCart = cart.map(line => {
+      const currentItem = items.find(item => item.id === line.item.id);
+      return currentItem ? { ...line, item: currentItem } : line;
+    });
+    const unavailableLine = currentCart.find(line => !line.item || line.item.status !== 'AVAILABLE' || line.quantity > (line.item.quantity ?? 1));
+    if (unavailableLine) {
+      return { success: false, message: `${unavailableLine.item.code} no longer has enough available stock.`, sales: [] };
+    }
     const nowIso = new Date().toISOString();
     const cleanCustomerName = customerName.trim();
     const cleanCustomerPhone = customerPhone.trim();
@@ -558,12 +568,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       ? customers.find(c => c.phone.replace(/\s+/g, '') === cleanCustomerPhone.replace(/\s+/g, ''))
       : undefined;
     const customerId = existingCustomer?.id || customerCode || `cust-${Date.now()}`;
-    const totalPaid = cart.reduce((sum, line) => sum + line.item.sellingPrice * line.quantity - line.discount, 0);
-    const purchasedCodes = cart.flatMap(line => Array.from({ length: line.quantity }, () => line.item.code));
+    const totalPaid = currentCart.reduce((sum, line) => sum + line.item.sellingPrice * line.quantity - line.discount, 0);
+    const purchasedCodes = currentCart.flatMap(line => Array.from({ length: line.quantity }, () => line.item.code));
     const nextCustomer: Customer = existingCustomer
       ? { ...existingCustomer, purchases: [...existingCustomer.purchases, ...purchasedCodes], totalSpent: existingCustomer.totalSpent + totalPaid, notes: note ? `${existingCustomer.notes || ''} | ${note}` : existingCustomer.notes }
       : { id: customerId, customerCode, name: resolvedCustomerName, phone: resolvedCustomerPhone, notes: note, dateAdded: nowIso.split('T')[0], purchases: purchasedCodes, totalSpent: totalPaid };
-    const salesToSave: Sale[] = cart.map((line, index) => {
+    const salesToSave: Sale[] = currentCart.map((line, index) => {
       const originalPrice = line.item.sellingPrice * line.quantity;
       const soldPrice = Math.max(0, originalPrice - line.discount);
       return {
@@ -588,7 +598,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         note,
       };
     });
-    const updatedItems = cart.map(line => {
+    const updatedItems = currentCart.map(line => {
       const remaining = Math.max(0, (line.item.quantity ?? 1) - line.quantity);
       return { ...line.item, quantity: remaining, status: remaining === 0 ? 'SOLD' as const : line.item.status, soldDate: remaining === 0 ? nowIso.split('T')[0] : line.item.soldDate, soldPrice: remaining === 0 ? line.item.sellingPrice - line.discount : line.item.soldPrice, soldDiscount: remaining === 0 ? line.discount : line.item.soldDiscount, soldCustomerId: remaining === 0 ? customerId : line.item.soldCustomerId, soldCustomerName: remaining === 0 ? resolvedCustomerName : line.item.soldCustomerName, soldEmployeeId: remaining === 0 ? currentUser?.id || 'emp-anon' : line.item.soldEmployeeId, soldEmployeeName: remaining === 0 ? currentUser?.name || 'Employee' : line.item.soldEmployeeName, soldNote: remaining === 0 ? note : line.item.soldNote };
     });

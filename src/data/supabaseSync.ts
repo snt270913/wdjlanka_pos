@@ -4,14 +4,17 @@ export const hasSupabase = (): boolean => Boolean(supabase);
 
 export const loadSupabaseCollection = async <T>(table: string): Promise<T[] | null> => {
   if (!supabase) return null;
-  const { data, error } = await supabase.from(table).select('id,data,quantity');
+  const columns = table === 'items' ? 'id,data,quantity' : 'id,data';
+  const { data, error } = await supabase.from(table).select(columns);
   if (error) {
     console.error(`Unable to load ${table} from Supabase`, error);
-    return null;
+    throw error;
   }
-  return (data || []).map((row) => table === 'items'
-    ? ({ ...(row.data as T), quantity: row.quantity ?? (row.data as { quantity?: number }).quantity ?? 1 } as T)
-    : row.data as T);
+  const rows = (data || []) as unknown as Array<{ data: T; quantity?: number }>;
+  return rows.map((row) => {
+    if (table !== 'items') return row.data as T;
+    return { ...(row.data as T), quantity: row.quantity ?? (row.data as T & { quantity?: number }).quantity ?? 1 } as T;
+  });
 };
 
 export const insertSupabaseRecord = async <T extends { id: string }>(table: string, value: T): Promise<void> => {
@@ -42,9 +45,12 @@ export const deleteSupabaseRecord = async (table: string, id: string): Promise<v
 };
 
 export const clearSupabaseCollection = async (table: string): Promise<void> => {
-  if (!supabase) return;
+  if (!supabase) throw new Error('Supabase is not configured.');
   const { error } = await supabase.from(table).delete().not('id', 'is', null);
-  if (error) console.error(`Unable to clear ${table}`, error);
+  if (error) {
+    console.error(`Unable to clear ${table}`, error);
+    throw error;
+  }
 };
 
 export const uploadItemImage = async (file: File): Promise<string | null> => {
