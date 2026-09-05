@@ -55,6 +55,8 @@ export const AddItemModal: React.FC = () => {
 
   const [photo1, setPhoto1] = useState('');
   const [photo2, setPhoto2] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Update auto-generated code when category changes
   useEffect(() => {
@@ -117,7 +119,9 @@ export const AddItemModal: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (isSubmitting || !name.trim()) return;
+    setIsSubmitting(true);
+    setSubmitError(null);
 
     const catObj = categories.find(c => c.id === categoryId);
     const subObj = currentSubcategories.find(s => s.id === subcategoryId);
@@ -145,8 +149,10 @@ export const AddItemModal: React.FC = () => {
       photo2: photo2.trim() || undefined,
       });
       setIsAddItemOpen(false);
-    } catch {
-      // Keep the form open so the user can retry after a database failure.
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : 'Unable to save the item. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -174,7 +180,12 @@ export const AddItemModal: React.FC = () => {
         </div>
 
         {/* Modal Form */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
+        <form id="add-item-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
+          {submitError && (
+            <div className="p-3 rounded-xl border border-rose-200 bg-rose-50 text-xs font-medium text-rose-700" role="alert">
+              {submitError}
+            </div>
+          )}
           {/* Step 1, 2, 3: Dynamic Category Selector per Blueprint Section 12 & 13 */}
           <div className="p-4 bg-blue-50/60 rounded-2xl border border-blue-200/80 space-y-3">
             <div className="text-xs font-bold text-blue-950 uppercase tracking-wider flex items-center gap-1.5">
@@ -520,13 +531,14 @@ export const AddItemModal: React.FC = () => {
               Cancel
             </button>
             <button
-              type="button"
+              type="submit"
+              form="add-item-form"
               id="add-item-submit-btn"
-              onClick={handleSubmit}
-              className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-600/20 transition flex items-center gap-1.5 cursor-pointer"
+              disabled={isSubmitting}
+              className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-600/20 transition flex items-center gap-1.5 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <Check className="w-4 h-4" />
-              <span>Save & Register Item</span>
+              <span>{isSubmitting ? 'Saving...' : 'Save & Register Item'}</span>
             </button>
           </div>
         </div>
