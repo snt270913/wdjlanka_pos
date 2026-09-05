@@ -874,7 +874,7 @@ export const INITIAL_ACTIVITY_LOGS: ActivityLog[] = [
 
 export const INITIAL_SETTINGS: BusinessSettings = {
   companyName: 'WDJLANKA(PVT)LTD',
-  tagline: 'Premium Imported Bicycles, Musical Instruments & Quality Goods',
+  tagline: 'Importers & distributors of Japanese brandnew used Motor Cycles, Bicycles, Machineries, Computer Parts and Motor Vehicle Spare Parts.',
   phone: '+94 11 234 5678 / +94 77 123 4567',
   email: 'info@wdjlanka.com',
   address: 'WDJLANKA Main Showroom, Sri Lanka',
