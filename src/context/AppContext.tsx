@@ -16,16 +16,12 @@ import {
 } from '../types';
 import { 
   INITIAL_CATEGORIES, 
-  INITIAL_CUSTOMERS, 
-  INITIAL_ITEMS, 
-  INITIAL_SALES, 
   INITIAL_SETTINGS, 
   INITIAL_TAGS, 
   INITIAL_USERS, 
   INITIAL_ACTIVITY_LOGS 
 } from '../data/initialData';
-import { localDataSync } from '../data/storage';
-import { clearSupabaseCollection, deleteSupabaseRecord, hasSupabase, loadSupabaseCollection, upsertSupabaseRecord } from '../data/supabaseSync';
+import { clearSupabaseCollection, deleteSupabaseRecord, hasSupabase, loadSupabaseCollection, insertSupabaseRecord, updateSupabaseRecord } from '../data/supabaseSync';
 
 interface AppContextType {
   currentUser: User | null;
@@ -39,19 +35,19 @@ interface AppContextType {
   items: Item[];
   activeItems: Item[];
   recycleBinItems: Item[];
-  addItem: (itemData: Omit<Item, 'id' | 'code' | 'dateAdded' | 'status'> & { customCode?: string }) => Item;
-  updateItem: (id: string, updates: Partial<Item>) => void;
-  deleteItem: (id: string) => { success: boolean; message: string };
-  restoreItem: (id: string) => void;
-  permanentlyDeleteItem: (id: string) => void;
+  addItem: (itemData: Omit<Item, 'id' | 'code' | 'dateAdded' | 'status'> & { customCode?: string }) => Promise<Item>;
+  updateItem: (id: string, updates: Partial<Item>) => Promise<void>;
+  deleteItem: (id: string) => Promise<{ success: boolean; message: string }>;
+  restoreItem: (id: string) => Promise<void>;
+  permanentlyDeleteItem: (id: string) => Promise<void>;
   markItemAsSold: (
     itemId: string, 
     soldPrice: number, 
     customerName: string, 
     customerPhone: string, 
     note?: string
-  ) => { success: boolean; message: string; sale?: Sale };
-  toggleReserveItem: (itemId: string) => void;
+  ) => Promise<{ success: boolean; message: string; sale?: Sale }>;
+  toggleReserveItem: (itemId: string) => Promise<void>;
   generateNextItemCode: (categoryId: string) => string;
   getItemByCode: (code: string) => Item | undefined;
 
@@ -81,8 +77,8 @@ interface AppContextType {
   addCustomerRequest: (request: Omit<CustomerRequest, 'id' | 'requestDate' | 'status'>) => void;
   updateCustomerRequest: (id: string, updates: Partial<Pick<CustomerRequest, 'status' | 'customerName' | 'customerPhone' | 'itemName' | 'quantity' | 'notes'>>) => void;
   deleteCustomerRequest: (id: string) => void;
-  addOrUpdateCustomer: (name: string, phone: string, itemCode: string, amount: number, note?: string) => void;
-  updateCustomerNotes: (id: string, notes: string) => void;
+  addOrUpdateCustomer: (name: string, phone: string, itemCode: string, amount: number, note?: string) => Promise<void>;
+  updateCustomerNotes: (id: string, notes: string) => Promise<void>;
 
   // Users & Staff
   users: User[];
@@ -146,12 +142,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   });
 
   const [items, setItems] = useState<Item[]>(() => {
-    return hasSupabase() ? [] : localDataSync.load('wdj_items_v2', []);
+    return [];
   });
 
   const [categories, setCategories] = useState<Category[]>(() => {
-    const saved = localStorage.getItem('wdj_categories_v2');
-    return hasSupabase() ? [] : (saved ? JSON.parse(saved) : []);
+    return [];
   });
 
   const [tags, setTags] = useState<Tag[]>(() => {
@@ -160,17 +155,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   });
 
   const [sales, setSales] = useState<Sale[]>(() => {
-    return hasSupabase() ? [] : localDataSync.load('wdj_sales_v2', []);
+    return [];
   });
 
   const [customers, setCustomers] = useState<Customer[]>(() => {
-    return hasSupabase() ? [] : localDataSync.load('wdj_customers_v2', []);
+    return [];
   });
 
   const [customerRequests, setCustomerRequests] = useState<CustomerRequest[]>(() => {
-    return localDataSync.load('wdj_customer_requests_v1', []);
+    return [];
   });
-  const [supabaseHydrated, setSupabaseHydrated] = useState(!hasSupabase());
 
   const [users, setUsers] = useState<User[]>(() => {
     const saved = localStorage.getItem('wdj_users_v2');
@@ -203,7 +197,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     localStorage.setItem('wdj_dark_mode', String(isDarkMode));
   }, [isDarkMode]);
 
-  // Sync to localStorage
+  // Load operational records exclusively from Supabase.
   useEffect(() => {
     if (!hasSupabase()) return;
     let cancelled = false;
@@ -215,13 +209,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       loadSupabaseCollection<CustomerRequest>('customer_requests'),
     ]).then(([cloudItems, cloudCategories, cloudSales, cloudCustomers, cloudRequests]) => {
       if (cancelled) return;
-      if (cloudItems) setItems(cloudItems);
       setItems(cloudItems || []);
       setCategories(cloudCategories || []);
       setSales(cloudSales || []);
       setCustomers(cloudCustomers || []);
       setCustomerRequests(cloudRequests || []);
-      setSupabaseHydrated(true);
     });
     return () => { cancelled = true; };
   }, []);
@@ -233,35 +225,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       localStorage.removeItem('wdj_current_user');
     }
   }, [currentUser]);
-
-  useEffect(() => {
-    if (!hasSupabase()) localDataSync.save('wdj_items_v2', items);
-    if (supabaseHydrated) items.forEach((item) => void upsertSupabaseRecord('items', item));
-  }, [items, supabaseHydrated]);
-
-  useEffect(() => {
-    if (!hasSupabase()) localStorage.setItem('wdj_categories_v2', JSON.stringify(categories));
-    if (supabaseHydrated) categories.forEach((category) => void upsertSupabaseRecord('categories', category));
-  }, [categories, supabaseHydrated]);
-
-  useEffect(() => {
-    localStorage.setItem('wdj_tags_v2', JSON.stringify(tags));
-  }, [tags]);
-
-  useEffect(() => {
-    if (!hasSupabase()) localDataSync.save('wdj_sales_v2', sales);
-    if (supabaseHydrated) sales.forEach((sale) => void upsertSupabaseRecord('sales', sale));
-  }, [sales, supabaseHydrated]);
-
-  useEffect(() => {
-    if (!hasSupabase()) localDataSync.save('wdj_customers_v2', customers);
-    if (supabaseHydrated) customers.forEach((customer) => void upsertSupabaseRecord('customers', customer));
-  }, [customers, supabaseHydrated]);
-
-  useEffect(() => {
-    if (!hasSupabase()) localDataSync.save('wdj_customer_requests_v1', customerRequests);
-    if (supabaseHydrated) customerRequests.forEach((request) => void upsertSupabaseRecord('customer_requests', request));
-  }, [customerRequests, supabaseHydrated]);
 
   useEffect(() => {
     localStorage.setItem('wdj_users_v2', JSON.stringify(users));
@@ -343,7 +306,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   // Add Item
-  const addItem = (itemData: Omit<Item, 'id' | 'code' | 'dateAdded' | 'status'> & { customCode?: string }): Item => {
+  const addItem = async (itemData: Omit<Item, 'id' | 'code' | 'dateAdded' | 'status'> & { customCode?: string }): Promise<Item> => {
     const code = itemData.customCode?.trim().toUpperCase() || generateNextItemCode(itemData.categoryId);
     const now = new Date().toISOString().split('T')[0];
     
@@ -355,99 +318,79 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       dateAdded: now,
     };
 
+    await insertSupabaseRecord('items', newItem);
     setItems(prev => [newItem, ...prev]);
     logAction('Item Added', `Registered item ${newItem.name} with code ${newItem.code} (Rs. ${newItem.sellingPrice.toLocaleString()})`, newItem.code);
     return newItem;
   };
 
   // Update Item
-  const updateItem = (id: string, updates: Partial<Item>) => {
-    setItems(prev => prev.map(item => {
-      if (item.id === id) {
-        const updated = { ...item, ...updates, dateUpdated: new Date().toISOString().split('T')[0] };
-        return updated;
-      }
-      return item;
-    }));
+  const updateItem = async (id: string, updates: Partial<Item>): Promise<void> => {
     const target = items.find(i => i.id === id);
-    if (target) {
-      logAction('Item Updated', `Updated details for ${target.code} - ${target.name}`, target.code);
-    }
+    if (!target) return;
+    const updated = { ...target, ...updates, dateUpdated: new Date().toISOString().split('T')[0] };
+    await updateSupabaseRecord('items', updated);
+    setItems(prev => prev.map(item => item.id === id ? updated : item));
+    logAction('Item Updated', `Updated details for ${target.code} - ${target.name}`, target.code);
   };
 
   // Delete Item (Move to Recycle Bin)
-  const deleteItem = (id: string): { success: boolean; message: string } => {
+  const deleteItem = async (id: string): Promise<{ success: boolean; message: string }> => {
     const target = items.find(i => i.id === id);
     if (!target) return { success: false, message: 'Item not found' };
 
-    setItems(prev => prev.map(item => {
-      if (item.id === id) {
-        return {
-          ...item,
-          status: 'DELETED',
-          previousStatus: item.status,
-          deletedAt: new Date().toISOString(),
-        };
-      }
-      return item;
-    }));
+    const deletedItem = { ...target, status: 'DELETED' as const, previousStatus: target.status, deletedAt: new Date().toISOString() };
+    await updateSupabaseRecord('items', deletedItem);
+    setItems(prev => prev.map(item => item.id === id ? deletedItem : item));
 
     logAction('Item Moved to Recycle Bin', `Moved item ${target.code} (${target.name}) to recycle bin`, target.code);
     return { success: true, message: `Item ${target.code} moved to Recycle Bin` };
   };
 
   // Restore Item
-  const restoreItem = (id: string) => {
+  const restoreItem = async (id: string): Promise<void> => {
     const target = items.find(i => i.id === id);
     if (!target) return;
 
-    setItems(prev => prev.map(item => {
-      if (item.id === id) {
-        return {
-          ...item,
-          status: item.previousStatus || 'AVAILABLE',
-          deletedAt: undefined,
-          previousStatus: undefined,
-        };
-      }
-      return item;
-    }));
+    const restoredItem = { ...target, status: target.previousStatus || 'AVAILABLE', deletedAt: undefined, previousStatus: undefined };
+    await updateSupabaseRecord('items', restoredItem);
+    setItems(prev => prev.map(item => item.id === id ? restoredItem : item));
 
     logAction('Item Restored', `Restored item ${target.code} from Recycle Bin`, target.code);
   };
 
   // Permanently Delete Item
-  const permanentlyDeleteItem = (id: string) => {
+  const permanentlyDeleteItem = async (id: string): Promise<void> => {
     const target = items.find(i => i.id === id);
     if (!target) return;
 
+    await deleteSupabaseRecord('items', id);
     setItems(prev => prev.filter(item => item.id !== id));
-    void deleteSupabaseRecord('items', id);
     logAction('Permanent Delete', `Permanently deleted item ${target.code} (${target.name}) from database`, target.code);
   };
 
   // Toggle reserve status
-  const toggleReserveItem = (itemId: string) => {
+  const toggleReserveItem = async (itemId: string): Promise<void> => {
     const target = items.find(i => i.id === itemId);
     if (!target) return;
 
     if (target.status === 'AVAILABLE') {
-      updateItem(itemId, { status: 'RESERVED' });
+      await updateItem(itemId, { status: 'RESERVED' });
       logAction('Item Reserved', `Item ${target.code} was marked as RESERVED`, target.code);
     } else if (target.status === 'RESERVED') {
-      updateItem(itemId, { status: 'AVAILABLE' });
+      await updateItem(itemId, { status: 'AVAILABLE' });
       logAction('Reservation Cleared', `Item ${target.code} reservation was cleared to AVAILABLE`, target.code);
     }
   };
 
   // Mark as Sold (Core Business Function)
-  const markItemAsSold = (
+  const markItemAsSold = async (
     itemId: string,
     soldPrice: number,
     customerName: string,
     customerPhone: string,
     note?: string
-  ): { success: boolean; message: string; sale?: Sale } => {
+  ): Promise<{ success: boolean; message: string; sale?: Sale }> => {
     const target = items.find(i => i.id === itemId);
     if (!target) return { success: false, message: 'Item not found.' };
 
@@ -481,21 +424,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const existingCust = cleanCustomerPhone
       ? customers.find(c => c.phone.replace(/\s+/g, '') === cleanCustomerPhone.replace(/\s+/g, ''))
       : undefined;
+    let nextCustomer: Customer;
     if (existingCust) {
       customerId = existingCust.id;
-      setCustomers(prev => prev.map(c => {
-        if (c.id === existingCust.id) {
-          return {
-            ...c,
-            purchases: [...c.purchases, target.code],
-            totalSpent: c.totalSpent + soldPrice,
-            notes: note ? `${c.notes || ''} | ${note}` : c.notes,
-          };
-        }
-        return c;
-      }));
+      nextCustomer = {
+        ...existingCust,
+        purchases: [...existingCust.purchases, target.code],
+        totalSpent: existingCust.totalSpent + soldPrice,
+        notes: note ? `${existingCust.notes || ''} | ${note}` : existingCust.notes,
+      };
     } else {
-      const newCust: Customer = {
+      nextCustomer = {
         id: customerId,
         customerCode,
         name: resolvedCustomerName,
@@ -505,8 +444,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         purchases: [target.code],
         totalSpent: soldPrice,
       };
-      setCustomers(prev => [newCust, ...prev]);
     }
+    if (existingCust) await updateSupabaseRecord('customers', nextCustomer);
+    else await insertSupabaseRecord('customers', nextCustomer);
 
     // Create Sale record (Permanent historical sales record per Section 41)
     const newSale: Sale = {
@@ -530,27 +470,24 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       note,
     };
 
+    const soldItem: Item = {
+      ...target,
+      status: 'SOLD',
+      soldDate: nowIso.split('T')[0],
+      soldPrice,
+      soldDiscount: discount,
+      soldCustomerId: customerId,
+      soldCustomerName: resolvedCustomerName,
+      soldCustomerPhone: resolvedCustomerPhone,
+      soldEmployeeId: currentUser?.id || 'emp-anon',
+      soldEmployeeName: currentUser?.name || 'Employee',
+      soldNote: note,
+    };
+    await insertSupabaseRecord('sales', newSale);
+    await updateSupabaseRecord('items', soldItem);
+    setCustomers(prev => existingCust ? prev.map(c => c.id === existingCust.id ? nextCustomer : c) : [nextCustomer, ...prev]);
     setSales(prev => [newSale, ...prev]);
-
-    // Update item status
-    setItems(prev => prev.map(item => {
-      if (item.id === itemId) {
-        return {
-          ...item,
-          status: 'SOLD',
-          soldDate: nowIso.split('T')[0],
-          soldPrice,
-          soldDiscount: discount,
-          soldCustomerId: customerId,
-          soldCustomerName: resolvedCustomerName,
-          soldCustomerPhone: resolvedCustomerPhone,
-          soldEmployeeId: currentUser?.id || 'emp-anon',
-          soldEmployeeName: currentUser?.name || 'Employee',
-          soldNote: note,
-        };
-      }
-      return item;
-    }));
+    setItems(prev => prev.map(item => item.id === itemId ? soldItem : item));
 
     logAction(
       'Item Sold',
@@ -698,22 +635,40 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   // Customers
-  const addOrUpdateCustomer = (name: string, phone: string, itemCode: string, amount: number, note?: string) => {
+  const addOrUpdateCustomer = async (name: string, phone: string, itemCode: string, amount: number, note?: string): Promise<void> => {
     // Already handled in markItemAsSold, but available for direct customer editing
     const existing = customers.find(c => c.phone === phone);
     if (existing) {
-      setCustomers(prev => prev.map(c => c.id === existing.id ? {
-        ...c,
+      const updated = {
+        ...existing,
         name,
-        notes: note || c.notes,
-        purchases: [...c.purchases, itemCode],
-        totalSpent: c.totalSpent + amount
-      } : c));
+        notes: note || existing.notes,
+        purchases: [...existing.purchases, itemCode],
+        totalSpent: existing.totalSpent + amount
+      };
+      await updateSupabaseRecord('customers', updated);
+      setCustomers(prev => prev.map(c => c.id === existing.id ? updated : c));
+      return;
     }
+    const newCustomer: Customer = {
+      id: `cust-${Date.now()}`,
+      name,
+      phone,
+      notes: note,
+      dateAdded: new Date().toISOString().split('T')[0],
+      purchases: [itemCode],
+      totalSpent: amount,
+    };
+    await insertSupabaseRecord('customers', newCustomer);
+    setCustomers(prev => [newCustomer, ...prev]);
   };
 
-  const updateCustomerNotes = (id: string, notes: string) => {
-    setCustomers(prev => prev.map(c => c.id === id ? { ...c, notes } : c));
+  const updateCustomerNotes = async (id: string, notes: string): Promise<void> => {
+    const target = customers.find(c => c.id === id);
+    if (!target) return;
+    const updated = { ...target, notes };
+    await updateSupabaseRecord('customers', updated);
+    setCustomers(prev => prev.map(c => c.id === id ? updated : c));
   };
 
   const addCustomerRequest = (request: Omit<CustomerRequest, 'id' | 'requestDate' | 'status'>) => {
@@ -827,10 +782,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setCustomers([]);
     setCustomerRequests([]);
     setActivityLogs(INITIAL_ACTIVITY_LOGS);
-    localStorage.removeItem('wdj_items_v2');
-    localStorage.removeItem('wdj_sales_v2');
-    localStorage.removeItem('wdj_customers_v2');
-    localStorage.removeItem('wdj_customer_requests_v1');
     if (hasSupabase()) {
       void Promise.all(['items', 'sales', 'customers', 'customer_requests'].map(clearSupabaseCollection));
     }

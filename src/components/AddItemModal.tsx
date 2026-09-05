@@ -115,7 +115,7 @@ export const AddItemModal: React.FC = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
 
@@ -123,7 +123,8 @@ export const AddItemModal: React.FC = () => {
     const subObj = currentSubcategories.find(s => s.id === subcategoryId);
     const typeObj = currentItemTypes.find(t => t.id === itemTypeId);
 
-    addItem({
+    try {
+      await addItem({
       customCode: customCode.trim() || undefined,
       name: name.trim(),
       categoryId,
@@ -142,9 +143,11 @@ export const AddItemModal: React.FC = () => {
       maxDiscount: Number(maxDiscount) || 0,
       photo1: photo1.trim() || undefined,
       photo2: photo2.trim() || undefined,
-    });
-
-    setIsAddItemOpen(false);
+      });
+      setIsAddItemOpen(false);
+    } catch {
+      // Keep the form open so the user can retry after a database failure.
+    }
   };
 
   return (

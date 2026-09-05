@@ -12,16 +12,31 @@ export const loadSupabaseCollection = async <T>(table: string): Promise<T[] | nu
   return (data || []).map((row) => row.data as T);
 };
 
-export const upsertSupabaseRecord = async <T extends { id: string }>(table: string, value: T): Promise<void> => {
-  if (!supabase) return;
-  const { error } = await supabase.from(table).upsert({ id: value.id, data: value, updated_at: new Date().toISOString() });
-  if (error) console.error(`Unable to save ${table} record`, error);
+export const insertSupabaseRecord = async <T extends { id: string }>(table: string, value: T): Promise<void> => {
+  if (!supabase) throw new Error('Supabase is not configured.');
+  const { error } = await supabase.from(table).insert({ id: value.id, data: value, updated_at: new Date().toISOString() });
+  if (error) {
+    console.error(`Unable to insert ${table} record`, error);
+    throw error;
+  }
+};
+
+export const updateSupabaseRecord = async <T extends { id: string }>(table: string, value: T): Promise<void> => {
+  if (!supabase) throw new Error('Supabase is not configured.');
+  const { error } = await supabase.from(table).update({ data: value, updated_at: new Date().toISOString() }).eq('id', value.id);
+  if (error) {
+    console.error(`Unable to update ${table} record`, error);
+    throw error;
+  }
 };
 
 export const deleteSupabaseRecord = async (table: string, id: string): Promise<void> => {
-  if (!supabase) return;
+  if (!supabase) throw new Error('Supabase is not configured.');
   const { error } = await supabase.from(table).delete().eq('id', id);
-  if (error) console.error(`Unable to delete ${table} record`, error);
+  if (error) {
+    console.error(`Unable to delete ${table} record`, error);
+    throw error;
+  }
 };
 
 export const clearSupabaseCollection = async (table: string): Promise<void> => {

@@ -55,7 +55,7 @@ export const MarkSoldModal: React.FC = () => {
   const hasPromotion = item.maxDiscount > 0 || item.tags.some((tag) => /sale|promo|offer|discount|quick/i.test(tag));
   const discountButtonLabel = discountApplied ? 'Discount Applied' : 'Apply Discount';
 
-  const handleConfirmSale = (e: React.FormEvent) => {
+  const handleConfirmSale = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
 
@@ -70,13 +70,7 @@ export const MarkSoldModal: React.FC = () => {
       return;
     }
 
-    const res = markItemAsSold(
-      item.id,
-      soldPrice,
-      customerName.trim(),
-      customerPhone.trim(),
-      note.trim() || undefined
-    );
+    const res = await markItemAsSold(item.id, soldPrice, customerName.trim(), customerPhone.trim(), note.trim() || undefined);
 
     if (res.success && res.sale) {
       setCompletedSale(res.sale);
