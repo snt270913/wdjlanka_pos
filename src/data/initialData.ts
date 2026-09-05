@@ -872,9 +872,11 @@ export const INITIAL_ACTIVITY_LOGS: ActivityLog[] = [
   },
 ];
 
+export const DEFAULT_TAGLINE = 'Importers & distributors of Japanese brandnew used Motor Cycles, Bicycles, Machineries, Computer Parts and Motor Vehicle Spare Parts.';
+
 export const INITIAL_SETTINGS: BusinessSettings = {
   companyName: 'WDJLANKA(PVT)LTD',
-  tagline: 'Importers & distributors of Japanese brandnew used Motor Cycles, Bicycles, Machineries, Computer Parts and Motor Vehicle Spare Parts.',
+  tagline: DEFAULT_TAGLINE,
   phone: '+94 11 234 5678 / +94 77 123 4567',
   email: 'info@wdjlanka.com',
   address: 'WDJLANKA Main Showroom, Sri Lanka',

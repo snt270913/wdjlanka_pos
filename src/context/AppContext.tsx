@@ -16,6 +16,7 @@ import {
 } from '../types';
 import { 
   INITIAL_CATEGORIES, 
+  DEFAULT_TAGLINE,
   INITIAL_SETTINGS, 
   INITIAL_TAGS, 
   INITIAL_USERS, 
@@ -178,7 +179,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const [settings, setSettings] = useState<BusinessSettings>(() => {
     const saved = localStorage.getItem('wdj_settings_v2');
-    return saved ? JSON.parse(saved) : INITIAL_SETTINGS;
+    return saved ? { ...JSON.parse(saved), tagline: DEFAULT_TAGLINE } : INITIAL_SETTINGS;
   });
 
   // UI state
