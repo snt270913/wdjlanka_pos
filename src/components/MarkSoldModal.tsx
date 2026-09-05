@@ -8,11 +8,12 @@ import {
   AlertCircle, 
   User, 
   FileText, 
-  Printer, 
+  Download,
   Sparkles,
   Building2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { jsPDF } from 'jspdf';
 import { getItemImageUrl } from '../data/supabaseSync';
 
 export const MarkSoldModal: React.FC = () => {
@@ -33,6 +34,7 @@ export const MarkSoldModal: React.FC = () => {
   
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [completedSale, setCompletedSale] = useState<Sale | null>(null);
+  const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
 
   useEffect(() => {
     if (selectedItemForSale) {
@@ -88,8 +90,103 @@ export const MarkSoldModal: React.FC = () => {
     }
   };
 
-  const handlePrintReceipt = () => {
-    window.print();
+  const handleDownloadInvoice = async () => {
+    if (!completedSale || isDownloadingInvoice) return;
+
+    setIsDownloadingInvoice(true);
+    try {
+      const invoice = new jsPDF({ unit: 'mm', format: 'a4' });
+      const pageWidth = invoice.internal.pageSize.getWidth();
+      const left = 20;
+      const right = pageWidth - 20;
+      const formatInvoiceCurrency = (amount: number) => `${settings.currency} ${amount.toLocaleString('en-LK')}`;
+
+      invoice.setFillColor(15, 23, 42);
+      invoice.rect(0, 0, pageWidth, 42, 'F');
+      invoice.setTextColor(255, 255, 255);
+      invoice.setFont('helvetica', 'bold');
+      invoice.setFontSize(22);
+      invoice.text('WDJLANKA (PVT) LTD', left, 18);
+      invoice.setFont('helvetica', 'normal');
+      invoice.setFontSize(9);
+      invoice.text(settings.tagline || 'Sales & Inventory Invoice', left, 26);
+      invoice.text(settings.email || '', left, 32);
+      if (settings.address) invoice.text(settings.address, right, 34, { align: 'right' });
+      invoice.setFont('helvetica', 'bold');
+      invoice.setFontSize(18);
+      invoice.text('INVOICE', right, 20, { align: 'right' });
+      invoice.setFont('helvetica', 'normal');
+      invoice.setFontSize(9);
+      invoice.text(completedSale.id, right, 28, { align: 'right' });
+
+      invoice.setTextColor(15, 23, 42);
+      invoice.setFont('helvetica', 'bold');
+      invoice.setFontSize(11);
+      invoice.text('Transaction Details', left, 58);
+      invoice.setDrawColor(226, 232, 240);
+      invoice.line(left, 62, right, 62);
+      invoice.setFont('helvetica', 'normal');
+      invoice.setFontSize(10);
+      invoice.text(`Transaction ID: ${completedSale.id}`, left, 72);
+      invoice.text(`Date: ${new Date(completedSale.saleDate).toLocaleString()}`, left, 80);
+      invoice.text(`Employee: ${completedSale.employeeName}`, left, 88);
+      invoice.text('Bill To:', right - 55, 72);
+      invoice.setFont('helvetica', 'bold');
+      invoice.text(completedSale.customerName, right - 55, 80);
+      invoice.setFont('helvetica', 'normal');
+      if (completedSale.customerId.startsWith('CUS-')) {
+        invoice.text(`Customer Code: ${completedSale.customerId}`, right - 55, 88);
+      }
+
+      const tableTop = 106;
+      invoice.setFillColor(241, 245, 249);
+      invoice.roundedRect(left, tableTop, right - left, 12, 2, 2, 'F');
+      invoice.setTextColor(71, 85, 105);
+      invoice.setFont('helvetica', 'bold');
+      invoice.setFontSize(9);
+      invoice.text('ITEM CODE', left + 5, tableTop + 7);
+      invoice.text('ITEM NAME', left + 35, tableTop + 7);
+      invoice.text('ORIGINAL', right - 65, tableTop + 7, { align: 'right' });
+      invoice.text('SOLD PRICE', right - 5, tableTop + 7, { align: 'right' });
+
+      invoice.setTextColor(15, 23, 42);
+      invoice.setFont('helvetica', 'normal');
+      invoice.setFontSize(10);
+      invoice.text(completedSale.itemCode, left + 5, tableTop + 23);
+      invoice.text(invoice.splitTextToSize(completedSale.itemName, 65), left + 35, tableTop + 23);
+      invoice.text(formatInvoiceCurrency(completedSale.originalPrice), right - 65, tableTop + 23, { align: 'right' });
+      invoice.text(formatInvoiceCurrency(completedSale.soldPrice), right - 5, tableTop + 23, { align: 'right' });
+      invoice.setDrawColor(226, 232, 240);
+      invoice.line(left, tableTop + 32, right, tableTop + 32);
+
+      let totalTop = tableTop + 48;
+      if (completedSale.discount > 0) {
+        invoice.setTextColor(180, 83, 9);
+        invoice.text('Discount Applied', right - 55, totalTop, { align: 'right' });
+        invoice.text(`-${formatInvoiceCurrency(completedSale.discount)}`, right - 5, totalTop, { align: 'right' });
+        totalTop += 9;
+      }
+      invoice.setFillColor(219, 234, 254);
+      invoice.roundedRect(right - 85, totalTop, 85, 17, 2, 2, 'F');
+      invoice.setTextColor(30, 64, 175);
+      invoice.setFont('helvetica', 'bold');
+      invoice.setFontSize(12);
+      invoice.text('TOTAL PAID', right - 48, totalTop + 11, { align: 'right' });
+      invoice.text(formatInvoiceCurrency(completedSale.soldPrice), right - 5, totalTop + 11, { align: 'right' });
+
+      invoice.setTextColor(100, 116, 139);
+      invoice.setFont('helvetica', 'normal');
+      invoice.setFontSize(9);
+      invoice.text('Thank you for choosing WDJLANKA (PVT) LTD.', left, 265);
+      invoice.text('Please retain this invoice for your records. All sales are subject to store terms.', left, 272);
+      invoice.setDrawColor(203, 213, 225);
+      invoice.line(left, 258, right, 258);
+      invoice.save(`invoice-${completedSale.id}.pdf`);
+    } catch {
+      setErrorMessage('Unable to generate the invoice. Please try again.');
+    } finally {
+      setIsDownloadingInvoice(false);
+    }
   };
 
   return (
@@ -285,6 +382,12 @@ export const MarkSoldModal: React.FC = () => {
               <h3 className="text-lg font-bold text-slate-900">Sale Successfully Confirmed!</h3>
               <p className="text-xs text-slate-500">Transaction ID: {completedSale.id}</p>
             </div>
+            {errorMessage && (
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 flex items-center gap-2" role="alert">
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                <span>{errorMessage}</span>
+              </div>
+            )}
 
             {/* Printable Digital Receipt Card */}
             <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200 space-y-4 font-mono text-xs text-slate-800">
@@ -343,11 +446,12 @@ export const MarkSoldModal: React.FC = () => {
             {/* Action buttons */}
             <div className="flex items-center gap-3">
               <button
-                onClick={handlePrintReceipt}
-                className="flex-1 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-xl transition flex items-center justify-center gap-2 cursor-pointer"
+                onClick={() => void handleDownloadInvoice()}
+                disabled={isDownloadingInvoice}
+                className="flex-1 py-2.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-60 text-white text-xs font-semibold rounded-xl transition flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed"
               >
-                <Printer className="w-4 h-4" />
-                <span>Print Receipt</span>
+                <Download className="w-4 h-4" />
+                <span>{isDownloadingInvoice ? 'Generating...' : 'Download Invoice'}</span>
               </button>
               <button
                 onClick={() => setSelectedItemForSale(null)}
