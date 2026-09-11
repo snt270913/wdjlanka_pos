@@ -23,3 +23,13 @@ JWT roles remain effective until tokens refresh/expire. When revoking an adminis
 ## Scope
 
 This release does not introduce employee access, checkout transactions, cloud settings synchronization, or public product-image privacy. Those are separate changes. Production remains on the original PIN version until the above steps complete.
+
+## Username and biometric login
+
+Configure VITE_ADMIN_USERNAME (defaults to wdjlanka) and VITE_ADMIN_LOGIN_EMAIL for the confirmed admin account in both preview and production, then rebuild. This is a single-admin alias, not an employee directory. The email identifier is bundled client-side; credentials and authorization still require Supabase Auth. Do not put a password in these variables.
+
+Enable Supabase Authentication > Passkeys with RP ID `wdjlankapos.vercel.app`, display name `WDJLANKA`, and origin `https://wdjlankapos.vercel.app`. This is required server configuration, not applied by this PR. Arbitrary Vercel preview domains cannot share this RP ID; test ceremonies on a deliberately configured compatible hostname. Do not broaden RP ID to vercel.app.
+
+The Supabase API is experimental. The app labels its controls Biometric Login, but OS/browser dialogs are outside app control and may mention passkeys or offer device PINs. Credentials may sync across devices. Enrollment and revocation are available in Security settings after login; password login remains the fallback. No biometric templates or saved passwords are stored by this feature.
+
+Before release, test actual enrollment, logout, biometric sign-in, cancellation, removal and revoked-credential denial on a supported physical device. These tests and server-side enabling remain pending.
