@@ -26,7 +26,6 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ setMobileOpen }) => {
   const { 
     currentUser, 
-    setCurrentUser, 
     users, 
     activeItems, 
     getStockAge, 
