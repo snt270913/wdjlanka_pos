@@ -1,3 +1,4 @@
+import { resolveLoginEmail } from '../utils/loginIdentity';
 import { supabase } from '../supabaseClient';
 import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
 import { 
@@ -862,11 +863,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   // Supabase verifies credentials; authorization comes only from server-owned metadata.
-  const login = async (email: string, password: string) => {
+  const login = async (username: string, password: string) => {
+    const email = resolveLoginEmail(username, import.meta.env.VITE_ADMIN_USERNAME || 'wdjlanka', import.meta.env.VITE_ADMIN_LOGIN_EMAIL || '');
+    if (!email) return { success: false, message: 'Unable to sign in. Check your username and password or contact the administrator.' };
     if (!supabase) return { success: false, message: 'Sign-in is not configured. Contact the administrator.' };
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
-      if (error || !data.user) return { success: false, message: 'Unable to sign in. Check your email and password.' };
+      if (error || !data.user) return { success: false, message: 'Unable to sign in. Check your username and password.' };
       if (data.user.app_metadata?.role !== 'ADMIN') {
         await supabase.auth.signOut();
         return { success: false, message: 'This account does not have admin access.' };
