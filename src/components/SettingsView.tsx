@@ -1,3 +1,4 @@
+import { supabase } from '../supabaseClient';
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { Category } from '../types';
@@ -107,27 +108,21 @@ export const SettingsView: React.FC = () => {
     if (category) updateCategory(categoryId, { subcategories: category.subcategories.map((subcategory) => subcategory.id === subcategoryId ? { ...subcategory, itemTypes: subcategory.itemTypes.map((type) => type.id === typeId ? { ...type, name } : type) } : subcategory) });
   };
 
-  const handleChangePin = (e: React.FormEvent) => {
+  const handleChangePin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setPinMessage(null);
-    setPinError(false);
-    const storedPin = localStorage.getItem('wdj_admin_pin') || '1234';
-    if (currentPin !== storedPin || newPin.length < 4 || newPin !== confirmPin) {
-      setPinError(true);
-      setPinMessage(
-        currentPin !== storedPin
-          ? 'Current PIN is incorrect.'
-          : newPin.length < 4
-            ? 'New PIN must be at least 4 characters long.'
-            : 'New PINs do not match.'
-      );
-      return;
+    setPinMessage(null); setPinError(false);
+    if (newPin.length < 12 || newPin !== confirmPin) {
+      setPinError(true); setPinMessage('Use at least 12 characters and matching passwords.'); return;
     }
-    localStorage.setItem('wdj_admin_pin', newPin);
-    setCurrentPin('');
-    setNewPin('');
-    setConfirmPin('');
-    setPinMessage('Admin PIN updated successfully.');
+    try {
+      if (!supabase) throw new Error('Sign-in is not configured.');
+      const { error } = await supabase.auth.updateUser({ password: newPin, current_password: currentPin });
+      if (error) throw error;
+      setCurrentPin(''); setNewPin(''); setConfirmPin('');
+      setPinMessage('Password updated successfully.');
+    } catch {
+      setPinError(true); setPinMessage('Unable to update password. Check your current password and try again.');
+    }
   };
 
   return (
@@ -167,7 +162,7 @@ export const SettingsView: React.FC = () => {
           }`}
         >
           <LockKeyhole className="w-4 h-4" />
-          <span>Security &amp; Admin PIN</span>
+          <span>Security &amp; Admin Password</span>
         </button>
 
         <button
@@ -277,27 +272,27 @@ export const SettingsView: React.FC = () => {
           <div className="flex items-center gap-3 border-b border-slate-100 pb-3">
             <div className="w-10 h-10 rounded-2xl bg-slate-900 text-cyan-300 flex items-center justify-center"><LockKeyhole className="w-5 h-5" /></div>
             <div>
-              <h3 className="text-sm font-bold text-slate-800">Security &amp; Admin PIN</h3>
-              <p className="text-xs text-slate-500">Update the PIN used for the WDJLANKA admin login.</p>
+              <h3 className="text-sm font-bold text-slate-800">Security &amp; Admin Password</h3>
+              <p className="text-xs text-slate-500">Update the Password used for the WDJLANKA admin login.</p>
             </div>
           </div>
           {pinMessage && <div className={`rounded-xl border p-3 text-xs font-semibold ${pinError ? 'border-red-200 bg-red-50 text-red-700' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>{pinMessage}</div>}
           <form onSubmit={handleChangePin} className="space-y-4 text-xs">
             <div>
-              <label className="block font-semibold text-slate-700 mb-1.5">Current PIN</label>
-              <input type="password" inputMode="numeric" value={currentPin} onChange={(e) => setCurrentPin(e.target.value)} className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition" required />
+              <label className="block font-semibold text-slate-700 mb-1.5">Current Password</label>
+              <input type="password"  value={currentPin} onChange={(e) => setCurrentPin(e.target.value)} className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition" required />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
-                <label className="block font-semibold text-slate-700 mb-1.5">New PIN</label>
-                <input type="password" inputMode="numeric" minLength={4} value={newPin} onChange={(e) => setNewPin(e.target.value)} className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition" required />
+                <label className="block font-semibold text-slate-700 mb-1.5">New Password</label>
+                <input type="password"  minLength={12} value={newPin} onChange={(e) => setNewPin(e.target.value)} className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition" required />
               </div>
               <div>
-                <label className="block font-semibold text-slate-700 mb-1.5">Confirm New PIN</label>
-                <input type="password" inputMode="numeric" minLength={4} value={confirmPin} onChange={(e) => setConfirmPin(e.target.value)} className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition" required />
+                <label className="block font-semibold text-slate-700 mb-1.5">Confirm New Password</label>
+                <input type="password"  minLength={12} value={confirmPin} onChange={(e) => setConfirmPin(e.target.value)} className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition" required />
               </div>
             </div>
-            <button type="submit" className="px-5 py-2.5 bg-slate-900 hover:bg-slate-700 text-white rounded-2xl font-bold transition cursor-pointer shadow-xs">Update Admin PIN</button>
+            <button type="submit" className="px-5 py-2.5 bg-slate-900 hover:bg-slate-700 text-white rounded-2xl font-bold transition cursor-pointer shadow-xs">Update Admin Password</button>
           </form>
         </div>
       )}
