@@ -1,3 +1,4 @@
+import { BiometricSettings } from './BiometricSettings';
 import { supabase } from '../supabaseClient';
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
@@ -294,6 +295,7 @@ export const SettingsView: React.FC = () => {
             </div>
             <button type="submit" className="px-5 py-2.5 bg-slate-900 hover:bg-slate-700 text-white rounded-2xl font-bold transition cursor-pointer shadow-xs">Update Admin Password</button>
           </form>
+          <BiometricSettings />
         </div>
       )}
 
