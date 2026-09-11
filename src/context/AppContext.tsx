@@ -1,3 +1,4 @@
+import { supabase } from '../supabaseClient';
 import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
 import { 
   Item, 
@@ -29,9 +30,10 @@ interface AppContextType {
   currentUser: User | null;
   isDarkMode: boolean;
   setIsDarkMode: (enabled: boolean) => void;
-  setCurrentUser: (user: User | null) => void;
-  login: (username: string, pin: string) => { success: boolean; message: string };
-  logout: () => void;
+  authLoading: boolean;
+  dataError: string | null;
+  login: (email: string, password: string) => Promise<{ success: boolean; message: string }>;
+  logout: () => Promise<void>;
   
   // Items
   items: Item[];
@@ -140,16 +142,45 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [isDarkMode, setIsDarkMode] = useState(() => localStorage.getItem('wdj_dark_mode') === 'true');
-  // Authentication preferences remain local; operational records are never seeded.
-  const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    if (!localStorage.getItem('wdj_admin_pin')) {
-      localStorage.setItem('wdj_admin_pin', '1234');
-    }
-    const saved = localStorage.getItem('wdj_current_user');
-    return localStorage.getItem('wdj_admin_authenticated') === 'true' && saved
-      ? { ...JSON.parse(saved), username: 'wdjlanka' }
-      : null;
-  });
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [dataError, setDataError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Never trust the previous browser-only admin flag or stored user object.
+    ['wdj_admin_pin', 'wdj_admin_authenticated', 'wdj_current_user', 'wdj_users_v2'].forEach(key => localStorage.removeItem(key));
+    if (!supabase) { setAuthLoading(false); return; }
+    let active = true;
+    let generation = 0;
+    const refreshUser = async () => {
+      const request = ++generation;
+      try {
+        const { data, error } = await supabase.auth.getUser();
+        if (!active || request !== generation) return;
+        const user = data.user;
+        setCurrentUser(!error && user?.app_metadata?.role === 'ADMIN' ? {
+          id: user.id, name: 'Administrator', username: user.email || '',
+          role: 'ADMIN', status: 'ACTIVE', dateCreated: user.created_at,
+        } : null);
+      } catch {
+        if (active && request === generation) setCurrentUser(null);
+      } finally {
+        if (active && request === generation) setAuthLoading(false);
+      }
+    };
+    void refreshUser();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') {
+        generation++;
+        setCurrentUser(null);
+        setAuthLoading(false);
+      } else {
+        // Run outside the auth callback to avoid the client's auth lock.
+        window.setTimeout(() => { if (active) void refreshUser(); }, 0);
+      }
+    });
+    return () => { active = false; generation++; subscription.unsubscribe(); };
+  }, []);
 
   const [items, setItems] = useState<Item[]>(() => {
     return [];
@@ -177,8 +208,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   });
 
   const [users, setUsers] = useState<User[]>(() => {
-    const saved = localStorage.getItem('wdj_users_v2');
-    return saved ? JSON.parse(saved) : INITIAL_USERS;
+    return [];
   });
 
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>(() => {
@@ -211,7 +241,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // Load operational records exclusively from Supabase.
   useEffect(() => {
-    if (!hasSupabase()) return;
+    setItems([]); setCategories([]); setSales([]); setCustomers([]); setCustomerRequests([]);
+    setCart([]); setIsCartOpen(false); setSelectedItemForDetail(null);
+    setIsAddItemOpen(false); setSelectedItemForSaleState(null);
+    setDataError(null);
+    if (!hasSupabase() || !currentUser) return;
     let cancelled = false;
     Promise.all([
       loadSupabaseCollection<Item>('items'),
@@ -227,22 +261,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setCustomers(cloudCustomers || []);
       setCustomerRequests(cloudRequests || []);
     }).catch(error => {
-      if (!cancelled) console.error('Unable to hydrate POS data from Supabase', error);
+      if (!cancelled) setDataError('Unable to load business data. Check your connection and reload before making changes.');
     });
     return () => { cancelled = true; };
-  }, []);
+  }, [currentUser?.id]);
 
-  useEffect(() => {
-    if (currentUser) {
-      localStorage.setItem('wdj_current_user', JSON.stringify(currentUser));
-    } else {
-      localStorage.removeItem('wdj_current_user');
-    }
-  }, [currentUser]);
-
-  useEffect(() => {
-    localStorage.setItem('wdj_users_v2', JSON.stringify(users));
-  }, [users]);
 
   useEffect(() => {
     localStorage.setItem('wdj_logs_v2', JSON.stringify(activityLogs));
@@ -838,26 +861,25 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     logAction('Settings Updated', 'Updated business configurations / preferences');
   };
 
-  // Auth
-  const login = (username: string, pin: string): { success: boolean; message: string } => {
-    const storedPin = localStorage.getItem('wdj_admin_pin') || '1234';
-    if (username.trim().toLowerCase() !== 'wdjlanka' || pin !== storedPin) {
-      return { success: false, message: 'Invalid Username or PIN. Access Denied.' };
+  // Supabase verifies credentials; authorization comes only from server-owned metadata.
+  const login = async (email: string, password: string) => {
+    if (!supabase) return { success: false, message: 'Sign-in is not configured. Contact the administrator.' };
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+      if (error || !data.user) return { success: false, message: 'Unable to sign in. Check your email and password.' };
+      if (data.user.app_metadata?.role !== 'ADMIN') {
+        await supabase.auth.signOut();
+        return { success: false, message: 'This account does not have admin access.' };
+      }
+      return { success: true, message: 'Signed in.' };
+    } catch {
+      return { success: false, message: 'Unable to connect. Please try again.' };
     }
-    const adminUser: User = { id: 'local-admin', name: 'Administrator', username: 'wdjlanka', password: '', role: 'ADMIN', status: 'ACTIVE', dateCreated: new Date().toISOString() };
-    localStorage.setItem('wdj_admin_authenticated', 'true');
-    window.setTimeout(() => {
-      setCurrentUser(adminUser);
-      logAction('User Login', `${adminUser.name} logged into the system`);
-    }, 450);
-    return { success: true, message: 'Authenticating... Welcome to WDJLANKA!' };
   };
 
-  const logout = () => {
-    if (currentUser) {
-      logAction('User Logout', `${currentUser.name} logged out`);
-    }
-    localStorage.removeItem('wdj_admin_authenticated');
+  const logout = async () => {
+    const { error } = await supabase!.auth.signOut({ scope: 'local' });
+    if (error) { window.alert('Unable to sign out. Please try again.'); return; }
     setCurrentUser(null);
   };
 
@@ -955,7 +977,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         currentUser,
         isDarkMode,
         setIsDarkMode,
-        setCurrentUser,
+        authLoading,
+        dataError,
         login,
         logout,
         items,
