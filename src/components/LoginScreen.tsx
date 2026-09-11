@@ -4,22 +4,21 @@ import { ArrowRight, Building2, CheckCircle2, Eye, EyeOff, KeyRound, LockKeyhole
 
 export const LoginScreen: React.FC = () => {
   const { login } = useApp();
-  const [username, setUsername] = useState('wdjlanka');
+  const [username, setUsername] = useState('');
   const [pin, setPin] = useState('');
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [showPin, setShowPin] = useState(false);
   const [authenticating, setAuthenticating] = useState(false);
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    setError(false);
-    const result = login(username, pin);
-    if (!result.success) {
-      setError(true);
-      setPin('');
-      return;
-    }
+    if (authenticating) return;
+    setError(null);
     setAuthenticating(true);
+    try {
+      const result = await login(username, pin);
+      if (!result.success) { setError(result.message); setPin(''); }
+    } finally { setAuthenticating(false); }
   };
 
   return (
@@ -39,26 +38,26 @@ export const LoginScreen: React.FC = () => {
           <h2 className="text-2xl font-bold">Sign In to WDJLANKA</h2>
           <p className="text-sm text-slate-400 mt-1">Secure access for your inventory workspace.</p>
         </div>
-        {error && <div className="mb-5 rounded-xl border border-red-400/50 bg-red-500/15 p-3 text-sm font-semibold text-red-200 animate-[shake_0.35s_ease-in-out]">Invalid Username or PIN. Access Denied.</div>}
+        {error && <div className="mb-5 rounded-xl border border-red-400/50 bg-red-500/15 p-3 text-sm font-semibold text-red-200 animate-[shake_0.35s_ease-in-out]">{error}</div>}
         {authenticating && <div className="mb-5 rounded-xl border border-emerald-400/50 bg-emerald-500/15 p-3 text-sm font-semibold text-emerald-200 flex items-center gap-2"><CheckCircle2 className="w-4 h-4" /> Authenticating... Welcome to WDJLANKA!</div>}
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label htmlFor="login-username-input" className="block text-xs font-bold text-slate-300 mb-2">Admin Username</label>
-            <input id="login-username-input" type="text" value={username} onChange={(event) => setUsername(event.target.value)} required placeholder="wdjlanka" autoComplete="username" className={`w-full rounded-xl bg-slate-950/60 border px-4 py-3 text-sm text-white outline-none transition focus:ring-2 focus:ring-cyan-400 ${error ? 'border-red-500' : 'border-white/15'}`} />
+            <label htmlFor="login-username-input" className="block text-xs font-bold text-slate-300 mb-2">Admin Email</label>
+            <input id="login-username-input" type="email" value={username} onChange={(event) => setUsername(event.target.value)} required placeholder="Your admin email" autoComplete="username" className={`w-full rounded-xl bg-slate-950/60 border px-4 py-3 text-sm text-white outline-none transition focus:ring-2 focus:ring-cyan-400 ${error ? 'border-red-500' : 'border-white/15'}`} />
           </div>
           <div>
-            <label htmlFor="login-pin-input" className="block text-xs font-bold text-slate-300 mb-2">Admin PIN</label>
+            <label htmlFor="login-pin-input" className="block text-xs font-bold text-slate-300 mb-2">Password</label>
             <div className="relative">
               <LockKeyhole className="absolute left-4 top-3.5 w-4 h-4 text-slate-500" />
-              <input id="login-pin-input" type={showPin ? 'text' : 'password'} inputMode="numeric" value={pin} onChange={(event) => setPin(event.target.value)} required placeholder="Enter your PIN" autoFocus className={`w-full rounded-xl bg-slate-950/60 border pl-11 pr-12 py-3 text-sm text-white outline-none transition focus:ring-2 focus:ring-cyan-400 ${error ? 'border-red-500' : 'border-white/15'}`} />
-              <button type="button" aria-label={showPin ? 'Hide PIN' : 'Show PIN'} onClick={() => setShowPin(!showPin)} className="absolute right-3 top-2.5 p-1.5 text-slate-400 hover:text-white cursor-pointer">
+              <input id="login-pin-input" type={showPin ? 'text' : 'password'} autoComplete="current-password" value={pin} onChange={(event) => setPin(event.target.value)} required placeholder="Enter your password" autoFocus className={`w-full rounded-xl bg-slate-950/60 border pl-11 pr-12 py-3 text-sm text-white outline-none transition focus:ring-2 focus:ring-cyan-400 ${error ? 'border-red-500' : 'border-white/15'}`} />
+              <button type="button" aria-label={showPin ? 'Hide password' : 'Show password'} onClick={() => setShowPin(!showPin)} className="absolute right-3 top-2.5 p-1.5 text-slate-400 hover:text-white cursor-pointer">
                 {showPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
           </div>
-          <button type="submit" className="w-full rounded-xl bg-cyan-400 hover:bg-cyan-300 text-slate-950 py-3.5 font-black text-sm flex items-center justify-center gap-2 transition cursor-pointer"><KeyRound className="w-4 h-4" /> Sign In to WDJLANKA <ArrowRight className="w-4 h-4" /></button>
+          <button type="submit" disabled={authenticating} className="w-full rounded-xl bg-cyan-400 hover:bg-cyan-300 text-slate-950 py-3.5 font-black text-sm flex items-center justify-center gap-2 transition cursor-pointer"><KeyRound className="w-4 h-4" /> Sign In to WDJLANKA <ArrowRight className="w-4 h-4" /></button>
         </form>
-        <div className="mt-7 pt-5 border-t border-white/10 flex items-center gap-2 text-[11px] text-slate-500"><CheckCircle2 className="w-4 h-4 text-emerald-400" /> Local secure session enabled</div>
+        <div className="mt-7 pt-5 border-t border-white/10 flex items-center gap-2 text-[11px] text-slate-500"><CheckCircle2 className="w-4 h-4 text-emerald-400" /> Authorized administrators only</div>
       </section>
     </main>
   );
