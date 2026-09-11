@@ -1,3 +1,4 @@
+import { supabase } from '../supabaseClient';
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { ArrowRight, Building2, CheckCircle2, Eye, EyeOff, KeyRound, LockKeyhole } from 'lucide-react';
@@ -21,6 +22,21 @@ export const LoginScreen: React.FC = () => {
     } finally { setAuthenticating(false); }
   };
 
+  const biometricSupported = window.isSecureContext && typeof PublicKeyCredential !== 'undefined';
+  const biometricLogin = async () => {
+    if (!supabase || authenticating) return;
+    setAuthenticating(true); setError(null);
+    try {
+      const { data, error } = await supabase.auth.signInWithPasskey();
+      if (error || !data.user) { setError('Biometric login was cancelled or unavailable. Use your username and password.'); return; }
+      if (data.user.app_metadata?.role !== 'ADMIN') {
+        await supabase.auth.signOut();
+        setError('This account does not have admin access.');
+      }
+    } catch { setError('Unable to use biometric login. Use your username and password.'); }
+    finally { setAuthenticating(false); }
+  };
+
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-5 relative overflow-hidden">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.2),_transparent_38%),radial-gradient(circle_at_bottom_right,_rgba(16,185,129,0.16),_transparent_35%)]" />
@@ -39,11 +55,11 @@ export const LoginScreen: React.FC = () => {
           <p className="text-sm text-slate-400 mt-1">Secure access for your inventory workspace.</p>
         </div>
         {error && <div className="mb-5 rounded-xl border border-red-400/50 bg-red-500/15 p-3 text-sm font-semibold text-red-200 animate-[shake_0.35s_ease-in-out]">{error}</div>}
-        {authenticating && <div className="mb-5 rounded-xl border border-emerald-400/50 bg-emerald-500/15 p-3 text-sm font-semibold text-emerald-200 flex items-center gap-2"><CheckCircle2 className="w-4 h-4" /> Authenticating... Welcome to WDJLANKA!</div>}
+        {authenticating && <div className="mb-5 rounded-xl border border-emerald-400/50 bg-emerald-500/15 p-3 text-sm font-semibold text-emerald-200 flex items-center gap-2"><CheckCircle2 className="w-4 h-4" /> Signing in...</div>}
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label htmlFor="login-username-input" className="block text-xs font-bold text-slate-300 mb-2">Admin Email</label>
-            <input id="login-username-input" type="email" value={username} onChange={(event) => setUsername(event.target.value)} required placeholder="Your admin email" autoComplete="username" className={`w-full rounded-xl bg-slate-950/60 border px-4 py-3 text-sm text-white outline-none transition focus:ring-2 focus:ring-cyan-400 ${error ? 'border-red-500' : 'border-white/15'}`} />
+            <label htmlFor="login-username-input" className="block text-xs font-bold text-slate-300 mb-2">Username</label>
+            <input id="login-username-input" type="text" value={username} onChange={(event) => setUsername(event.target.value)} required autoCapitalize="none" spellCheck={false} placeholder="Your username" autoComplete="username" className={`w-full rounded-xl bg-slate-950/60 border px-4 py-3 text-sm text-white outline-none transition focus:ring-2 focus:ring-cyan-400 ${error ? 'border-red-500' : 'border-white/15'}`} />
           </div>
           <div>
             <label htmlFor="login-pin-input" className="block text-xs font-bold text-slate-300 mb-2">Password</label>
@@ -57,6 +73,8 @@ export const LoginScreen: React.FC = () => {
           </div>
           <button type="submit" disabled={authenticating} className="w-full rounded-xl bg-cyan-400 hover:bg-cyan-300 text-slate-950 py-3.5 font-black text-sm flex items-center justify-center gap-2 transition cursor-pointer"><KeyRound className="w-4 h-4" /> Sign In to WDJLANKA <ArrowRight className="w-4 h-4" /></button>
         </form>
+        <button type="button" disabled={authenticating || !biometricSupported || !supabase} onClick={biometricLogin} className="mt-4 w-full rounded-xl border border-cyan-400/50 text-cyan-200 py-3 font-bold disabled:opacity-40">Biometric Login</button>
+        <p className="mt-2 text-xs text-slate-400">{biometricSupported ? 'First sign in with your password, then enable biometric login in Security settings. Your device may offer its PIN.' : 'Biometric login is unavailable on this browser. Use your username and password.'}</p>
         <div className="mt-7 pt-5 border-t border-white/10 flex items-center gap-2 text-[11px] text-slate-500"><CheckCircle2 className="w-4 h-4 text-emerald-400" /> Authorized administrators only</div>
       </section>
     </main>
