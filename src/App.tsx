@@ -21,8 +21,10 @@ import { QRScannerModal } from './components/QRScannerModal';
 import { GlobalSearchModal } from './components/GlobalSearchModal';
 
 const AppContent: React.FC = () => {
-  const { activeTab, currentUser } = useApp();
+  const { activeTab, currentUser, authLoading, dataError } = useApp();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  if (authLoading) return <main className="min-h-screen grid place-items-center bg-slate-950 text-white">Checking session...</main>;
 
   if (!currentUser) {
     return <LoginScreen />;
@@ -64,7 +66,7 @@ const AppContent: React.FC = () => {
         <Header setMobileOpen={setMobileOpen} />
         
         <main className="flex-1 overflow-y-auto pb-16 lg:pb-8">
-          {renderTabContent()}
+          {dataError ? <div role="alert" className="p-6 text-red-700">{dataError}<button className="block mt-4 underline" onClick={() => window.location.reload()}>Reload</button></div> : renderTabContent()}
         </main>
       </div>
 
