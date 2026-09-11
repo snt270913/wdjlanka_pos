@@ -41,7 +41,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
   const navItems = [
     {
       id: 'dashboard',
-      label: 'Dashboard & POS',
+      label: 'Overview & POS',
       icon: LayoutDashboard,
       badge: null,
     },
@@ -97,7 +97,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
     },
     {
       id: 'settings',
-      label: 'Settings & Config',
+      label: 'Settings',
       icon: Settings,
       badge: null,
     },
@@ -123,7 +123,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
       )}
 
       <aside className={`
-        fixed top-0 left-0 bottom-0 w-64 bg-[#0F172A] text-slate-300 border-r border-slate-800/90 z-50 flex flex-col transition-transform duration-300 ease-in-out
+        pos-sidebar fixed top-0 left-0 bottom-0 w-64 bg-[#0F172A] text-slate-300 border-r border-slate-800/90 z-50 flex flex-col transition-transform duration-300 ease-in-out
         ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         {/* Company Header */}
@@ -134,7 +134,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
             </div>
             <div className="overflow-hidden">
               <h1 className="font-bold text-white tracking-tight text-sm truncate">WDJLANKA<span className="text-blue-400">(PVT)LTD</span></h1>
-              <p className="text-[11px] text-slate-400 truncate font-medium">Admin POS &amp; Inventory</p>
+              <p className="text-[11px] text-slate-400 truncate font-medium">Retail workspace</p>
             </div>
           </div>
         </div>
@@ -174,7 +174,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
         </div>
 
         {/* Navigation Items */}
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        <nav aria-label="Main navigation" className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
@@ -183,6 +183,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
               <button
                 key={item.id}
                 id={`nav-${item.id}`}
+                aria-current={isActive ? 'page' : undefined}
                 onClick={() => handleNavClick(item)}
                 className={`
                   w-full flex items-center justify-between px-3 py-2.5 rounded-2xl text-xs font-medium transition cursor-pointer group
