@@ -57,16 +57,16 @@ const AppContent: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900 flex font-sans antialiased selection:bg-blue-500 selection:text-white">
+    <div className="pos-shell min-h-screen bg-slate-100 text-slate-900 flex font-sans antialiased selection:bg-blue-500 selection:text-white">
       {/* Navigation Sidebar */}
       <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 lg:pl-64 bg-[#F8FAFC] min-h-screen">
+      <div className="pos-workspace flex-1 flex flex-col min-w-0 lg:pl-64 bg-[#F8FAFC] min-h-screen">
         <Header setMobileOpen={setMobileOpen} />
         
-        <main className="flex-1 overflow-y-auto pb-16 lg:pb-8">
-          {dataError ? <div role="alert" className="p-6 text-red-700">{dataError}<button className="block mt-4 underline" onClick={() => window.location.reload()}>Reload</button></div> : renderTabContent()}
+        <main className="pos-content flex-1 overflow-y-auto pb-16 lg:pb-8">
+          {dataError ? <div role="alert" className="p-6 text-red-700">{dataError}<button className="block mt-4 underline" onClick={() => window.location.reload()}>Reload</button></div> : <div key={activeTab} className="pos-page">{renderTabContent()}</div>}
         </main>
       </div>
 
