@@ -94,6 +94,8 @@ export interface Item {
 }
 
 export interface Sale {
+  restoredAt?: string;
+  restoredBy?: string;
   id: string;
   itemId: string;
   itemCode: string;
