@@ -82,6 +82,8 @@ interface AppContextType {
 
   // Sales
   sales: Sale[];
+  completedSales: Sale[];
+  restoreSale: (saleId: string) => Promise<void>;
 
   // Customers
   customers: Customer[];
@@ -426,6 +428,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   // Restore Item
+  const completedSales = useMemo(() => sales.filter(sale => !sale.restoredAt), [sales]);
+  const restoreSale = async (saleId: string): Promise<void> => {
+    if (!supabase || currentUser?.role !== 'ADMIN') throw new Error('Administrator access is required.');
+    const { data, error } = await supabase.rpc('restore_pos_sale', { p_sale_id: saleId });
+    if (error) throw new Error(error.message);
+    const result = data as { item: Item; sale: Sale; customer: Customer | null };
+    setItems(previous => previous.map(item => item.id === result.item.id ? result.item : item));
+    setSales(previous => previous.map(sale => sale.id === result.sale.id ? result.sale : sale));
+    if (result.customer) setCustomers(previous => previous.map(customer => customer.id === result.customer!.id ? result.customer! : customer));
+    setCart(previous => previous.filter(line => line.item.id !== result.item.id));
+  };
+
   const restoreItem = async (id: string): Promise<void> => {
     const target = items.find(i => i.id === id);
     if (!target) return;
@@ -936,7 +950,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         i.dateAdded,
       ]);
     } else if (type === 'sales') {
-      headers = ['Sale ID', 'Item Code', 'Item Name', 'Sold Price (Rs)', 'Original Price (Rs)', 'Discount (Rs)', 'Cost (Rs)', 'Profit (Rs)', 'Customer Name', 'Customer Phone', 'Employee', 'Sale Date'];
+      headers = ['Sale ID', 'Item Code', 'Item Name', 'Sold Price (Rs)', 'Original Price (Rs)', 'Discount (Rs)', 'Cost (Rs)', 'Profit (Rs)', 'Customer Name', 'Customer Phone', 'Employee', 'Sale Date', 'Status', 'Restored At'];
       rows = sales.map(s => [
         s.id,
         s.itemCode,
@@ -950,6 +964,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         s.customerPhone,
         s.employeeName,
         s.saleDate,
+        s.restoredAt ? 'RESTORED' : 'COMPLETED',
+        s.restoredAt || '',
       ]);
     } else if (type === 'customers') {
       headers = ['Customer ID', 'Name', 'Phone', 'Total Spent (Rs)', 'Total Purchases', 'Purchased Items', 'Date Added'];
@@ -991,6 +1007,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         updateItem,
         deleteItem,
         restoreItem,
+        restoreSale,
+        completedSales,
         permanentlyDeleteItem,
         markItemAsSold,
         cart,
