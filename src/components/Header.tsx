@@ -33,7 +33,7 @@ export const Header: React.FC<HeaderProps> = ({ setMobileOpen }) => {
     setIsQRScannerOpen,
     resetAllDataToDefault,
     setSelectedItemForDetail,
-    activeTab
+    activeTab, dataError
     , isDarkMode, setIsDarkMode
   } = useApp();
 
@@ -66,8 +66,8 @@ export const Header: React.FC<HeaderProps> = ({ setMobileOpen }) => {
   const totalAlertsCount = slowMovingItems.length + missingPhotoItems.length + missingPriceItems.length;
 
   const tabTitles: Record<string, string> = {
-    dashboard: 'WDJLANKA POS & Business Dashboard',
-    items: 'Inventory Management (All Items)',
+    dashboard: 'Overview & POS',
+    items: 'Inventory',
     sales: 'Sales History & Records',
     customers: 'Customer Directory & History',
     'customer-requests': 'Customer Requests & Special Orders',
@@ -97,7 +97,7 @@ export const Header: React.FC<HeaderProps> = ({ setMobileOpen }) => {
           <div className="text-[11px] text-slate-500 hidden sm:flex items-center gap-2">
             <span className="text-emerald-600 font-medium flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Live Database Connected
+              {dataError ? 'Connection needs attention' : 'Admin workspace'}
             </span>
           </div>
         </div>
@@ -116,6 +116,7 @@ export const Header: React.FC<HeaderProps> = ({ setMobileOpen }) => {
         </button>
         {/* Global Search Button */}
         <button
+          aria-label="Search items"
           id="header-global-search-button"
           onClick={() => setIsGlobalSearchOpen(true)}
           className="flex items-center gap-2.5 px-3.5 py-2 bg-slate-100/90 hover:bg-slate-200/90 text-slate-500 hover:text-slate-800 rounded-2xl text-xs transition border border-slate-200/60 cursor-pointer shadow-2xs"
@@ -130,6 +131,7 @@ export const Header: React.FC<HeaderProps> = ({ setMobileOpen }) => {
 
         {/* Quick QR Scanner Button */}
         <button
+          aria-label="Scan QR code"
           id="header-qr-scanner-button"
           onClick={() => setIsQRScannerOpen(true)}
           title="Scan QR Code via Camera"
