@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { 
   LayoutDashboard, 
@@ -15,6 +15,7 @@ import {
   ShieldCheck, 
   Building2,
   ScanLine,
+  X,
   LogOut
   , ClipboardList
 } from 'lucide-react';
@@ -38,6 +39,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
     logout
   } = useApp();
 
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const close = (event: KeyboardEvent) => { if (event.key === 'Escape') setMobileOpen(false); };
+    document.addEventListener('keydown', close);
+    return () => { document.body.style.overflow = previous; document.removeEventListener('keydown', close); };
+  }, [mobileOpen, setMobileOpen]);
   const navItems = [
     {
       id: 'dashboard',
@@ -124,8 +133,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
 
       <aside className={`
         pos-sidebar fixed top-0 left-0 bottom-0 w-64 bg-[#0F172A] text-slate-300 border-r border-slate-800/90 z-50 flex flex-col transition-transform duration-300 ease-in-out
-        ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        ${mobileOpen ? 'translate-x-0 visible' : '-translate-x-full invisible lg:visible lg:translate-x-0'}
       `}>
+        <button className="lg:hidden self-end m-2 p-2 rounded-xl hover:bg-slate-700" aria-label="Close navigation" onClick={() => setMobileOpen(false)}><X size={22} /></button>
         {/* Company Header */}
         <div className="p-4 border-b border-slate-800/80">
           <div className="flex items-center gap-3">
@@ -165,7 +175,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
         <div className="px-3 pt-3">
           <button
             id="sidebar-quick-scan-button"
-            onClick={() => setIsQRScannerOpen(true)}
+            onClick={() => { setMobileOpen(false); setIsQRScannerOpen(true); }}
             className="w-full py-2.5 px-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-semibold rounded-2xl flex items-center justify-center gap-2 shadow-md shadow-blue-900/30 transition cursor-pointer"
           >
             <ScanLine className="w-4 h-4" />
@@ -213,7 +223,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
         <div className="p-3 border-t border-slate-800/80 space-y-1">
           <button
             id="sidebar-google-sheets-button"
-            onClick={() => setIsGoogleSheetsModalOpen(true)}
+            onClick={() => { setMobileOpen(false); setIsGoogleSheetsModalOpen(true); }}
             className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-slate-400 hover:text-emerald-300 hover:bg-emerald-950/30 rounded-xl transition cursor-pointer"
           >
             <div className="flex items-center gap-2.5">
@@ -225,7 +235,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
 
           <button
             id="sidebar-recycle-bin-button"
-            onClick={() => setIsRecycleBinOpen(true)}
+            onClick={() => { setMobileOpen(false); setIsRecycleBinOpen(true); }}
             className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-slate-400 hover:text-rose-300 hover:bg-rose-950/30 rounded-xl transition cursor-pointer"
           >
             <div className="flex items-center gap-2.5">
