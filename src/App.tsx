@@ -1,3 +1,4 @@
+import { LayoutDashboard, Package, Plus, ShoppingBag, Menu } from 'lucide-react';
 import React, { useState } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { Sidebar } from './components/Sidebar';
@@ -21,7 +22,7 @@ import { QRScannerModal } from './components/QRScannerModal';
 import { GlobalSearchModal } from './components/GlobalSearchModal';
 
 const AppContent: React.FC = () => {
-  const { activeTab, currentUser, authLoading, dataError } = useApp();
+  const { activeTab, setActiveTab, setIsAddItemOpen, currentUser, authLoading, dataError } = useApp();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   if (authLoading) return <main className="min-h-screen grid place-items-center bg-slate-950 text-white">Checking session...</main>;
@@ -70,6 +71,13 @@ const AppContent: React.FC = () => {
         </main>
       </div>
 
+      <nav className="mobile-dock" aria-label="Quick navigation">
+        <button aria-current={activeTab === 'dashboard' ? 'page' : undefined} onClick={() => setActiveTab('dashboard')}><LayoutDashboard size={20} /><span>Overview</span></button>
+        <button aria-current={activeTab === 'items' ? 'page' : undefined} onClick={() => setActiveTab('items')}><Package size={20} /><span>Items</span></button>
+        <button className="dock-add" onClick={() => setIsAddItemOpen(true)}><Plus size={24} /><span>Add item</span></button>
+        <button aria-current={activeTab === 'sales' ? 'page' : undefined} onClick={() => setActiveTab('sales')}><ShoppingBag size={20} /><span>Sales</span></button>
+        <button aria-expanded={mobileOpen} onClick={() => setMobileOpen(true)}><Menu size={20} /><span>More</span></button>
+      </nav>
       {/* Universal Global Modals */}
       <AddItemModal />
       <MarkSoldModal />
