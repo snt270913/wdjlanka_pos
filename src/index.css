@@ -184,3 +184,53 @@ html.dark .shadow-xs, html.dark .shadow-sm, html.dark .shadow-md, html.dark .sha
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }
+
+@media screen {
+  .mobile-dock, .sales-mobile-list { display: none; }
+  .sale-restore, .sale-secondary { min-height: 44px; padding: 10px 16px; border-radius: 12px; font-size: 13px; font-weight: 700; cursor: pointer; }
+  .sale-restore { background: #16736e; color: white; }
+  .sale-restore:hover { background: #105b57; }
+  .sale-secondary { background: #eef2f6; color: #334155; }
+  .sale-restored, .sale-completed { padding: 4px 8px; border-radius: 8px; font-size: 11px; font-weight: 700; }
+  .sale-restored { background: #fff2d9; color: #875515; }
+  .sale-completed { background: #e3f4ec; color: #176343; }
+  .restore-dialog { border: 1px solid #dce5e8; border-radius: 24px; padding: 28px; margin: auto; width: min(480px, calc(100vw - 32px)); max-height: 90dvh; overflow: auto; color: #172b3a; background: white; box-shadow: 0 30px 100px #0004; }
+  .restore-dialog::backdrop { background: #0b1e30aa; backdrop-filter: blur(5px); }
+  .restore-dialog button { flex: 1; }
+  .restore-dialog button:disabled { opacity: .5; }
+  .pos-content { min-width: 0; }
+  .pos-page .overflow-x-auto { overscroll-behavior-x: contain; }
+}
+@media screen and (max-width: 1023px) {
+  .mobile-dock { position: fixed; bottom: 0; left: 0; right: 0; z-index: 35; display: grid; grid-template-columns: repeat(5,1fr); padding: 8px 8px calc(8px + env(safe-area-inset-bottom)); background: #fffffff5; backdrop-filter: blur(16px); border-top: 1px solid #dce5e8; box-shadow: 0 -6px 24px #16374a09; }
+  .mobile-dock button { min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 10px; font-weight: 700; border-radius: 12px; color: #64748b; }
+  .mobile-dock button[aria-current] { background: #e7f3ef; color: #14665d; }
+  .mobile-dock .dock-add { background: #16736e; color: white; margin: 0 6px; }
+  .pos-content { padding-bottom: calc(94px + env(safe-area-inset-bottom)); }
+  .pos-sidebar { padding-bottom: env(safe-area-inset-bottom); width: min(300px, 88vw); }
+  html.dark .mobile-dock { background: #111e30f5; border-color: #263449; }
+}
+@media screen and (max-width: 767px) {
+  .pos-header { gap: 8px; padding: 10px 12px; }
+  .pos-header > div:first-child { min-width: 0; flex: 1; gap: 4px; }
+  .pos-header h2 { display: block; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 36vw; }
+  .pos-header > div:last-child { flex-shrink: 0; gap: 2px; }
+  #header-global-search-button { padding: 10px; }
+  #header-global-search-button span, #header-qr-scanner-button, #header-user-menu-button { display: none; }
+  .pos-header button { min-width: 40px; min-height: 44px; }
+  .pos-header .absolute.right-0 { position: fixed; left: 12px; right: 12px; width: auto; max-width: none; }
+  .pos-shell :is(input:not([type=checkbox]):not([type=radio]),select,textarea) { font-size: 16px; min-height: 44px; }
+  .pos-shell button { touch-action: manipulation; }
+  .pos-page button { min-height: 42px; }
+  .pos-page h1 { font-size: 22px; line-height: 1.3; }
+  .sales-desktop-table { display: none; }
+  .sales-mobile-list { display: grid; gap: 12px; }
+  .sale-card { background: white; border: 1px solid #e0e7ed; padding: 18px; border-radius: 20px; box-shadow: 0 3px 16px #153c4a06; }
+  .sale-card button { flex: 1; }
+  .pos-shell .fixed.inset-0.z-50 { padding: 8px; align-items: center; }
+  .pos-shell .fixed.inset-0.z-50 > div { max-height: calc(100dvh - 16px); margin-top: 0; margin-bottom: 0; border-radius: 20px; }
+  .pos-shell .fixed.inset-0.z-50 form { padding: 16px; }
+  .pos-shell .fixed.inset-0.z-50 button { min-height: 44px; }
+  html.dark .sale-card { background: #111e30; border-color: #263449; }
+}
+@media print { .mobile-dock, .restore-dialog { display: none !important; } }
