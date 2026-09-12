@@ -33,7 +33,7 @@ import {
 export const AdminDashboard: React.FC = () => {
   const { 
     activeItems, 
-    sales, 
+    completedSales: sales, 
     categories, 
     formatCurrency, 
     getStockAge, 

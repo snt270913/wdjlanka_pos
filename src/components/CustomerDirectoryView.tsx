@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 
 export const CustomerDirectoryView: React.FC = () => {
-  const { customers, sales, formatCurrency, setSelectedItemForDetail, getItemByCode } = useApp();
+  const { customers, completedSales: sales, formatCurrency, setSelectedItemForDetail, getItemByCode } = useApp();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
 

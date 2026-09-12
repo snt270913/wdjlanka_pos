@@ -58,7 +58,7 @@ export const ItemsView: React.FC = () => {
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
   const [selectedCondition, setSelectedCondition] = useState<string>('ALL');
   const [selectedTag, setSelectedTag] = useState<string>('ALL');
-  const [viewMode, setViewMode] = useState<'table' | 'grid' | 'aging'>('table');
+  const [viewMode, setViewMode] = useState<'table' | 'grid' | 'aging'>(() => window.matchMedia('(max-width: 767px)').matches ? 'grid' : 'table');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'price-asc' | 'price-desc' | 'code'>('newest');
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
 

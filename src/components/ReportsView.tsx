@@ -19,7 +19,7 @@ import {
 export const ReportsView: React.FC = () => {
   const { 
     activeItems, 
-    sales, 
+    completedSales: sales, 
     categories, 
     users, 
     formatCurrency, 

@@ -1,3 +1,4 @@
+import { LayoutDashboard, Package, Plus, ShoppingBag, Menu } from 'lucide-react';
 import React, { useState } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { Sidebar } from './components/Sidebar';
@@ -21,8 +22,10 @@ import { QRScannerModal } from './components/QRScannerModal';
 import { GlobalSearchModal } from './components/GlobalSearchModal';
 
 const AppContent: React.FC = () => {
-  const { activeTab, currentUser } = useApp();
+  const { activeTab, setActiveTab, setIsAddItemOpen, currentUser, authLoading, dataError } = useApp();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  if (authLoading) return <main className="min-h-screen grid place-items-center bg-slate-950 text-white">Checking session...</main>;
 
   if (!currentUser) {
     return <LoginScreen />;
@@ -55,19 +58,26 @@ const AppContent: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900 flex font-sans antialiased selection:bg-blue-500 selection:text-white">
+    <div className="pos-shell min-h-screen bg-slate-100 text-slate-900 flex font-sans antialiased selection:bg-blue-500 selection:text-white">
       {/* Navigation Sidebar */}
       <Sidebar mobileOpen={mobileOpen} setMobileOpen={setMobileOpen} />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 lg:pl-64 bg-[#F8FAFC] min-h-screen">
+      <div className="pos-workspace flex-1 flex flex-col min-w-0 lg:pl-64 bg-[#F8FAFC] min-h-screen">
         <Header setMobileOpen={setMobileOpen} />
         
-        <main className="flex-1 overflow-y-auto pb-16 lg:pb-8">
-          {renderTabContent()}
+        <main className="pos-content flex-1 overflow-y-auto pb-16 lg:pb-8">
+          {dataError ? <div role="alert" className="p-6 text-red-700">{dataError}<button className="block mt-4 underline" onClick={() => window.location.reload()}>Reload</button></div> : <div key={activeTab} className="pos-page">{renderTabContent()}</div>}
         </main>
       </div>
 
+      <nav className="mobile-dock" aria-label="Quick navigation">
+        <button aria-current={activeTab === 'dashboard' ? 'page' : undefined} onClick={() => setActiveTab('dashboard')}><LayoutDashboard size={20} /><span>Overview</span></button>
+        <button aria-current={activeTab === 'items' ? 'page' : undefined} onClick={() => setActiveTab('items')}><Package size={20} /><span>Items</span></button>
+        <button className="dock-add" onClick={() => setIsAddItemOpen(true)}><Plus size={24} /><span>Add item</span></button>
+        <button aria-current={activeTab === 'sales' ? 'page' : undefined} onClick={() => setActiveTab('sales')}><ShoppingBag size={20} /><span>Sales</span></button>
+        <button aria-expanded={mobileOpen} onClick={() => setMobileOpen(true)}><Menu size={20} /><span>More</span></button>
+      </nav>
       {/* Universal Global Modals */}
       <AddItemModal />
       <MarkSoldModal />
