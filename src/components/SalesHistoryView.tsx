@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import html2canvas from 'html2canvas';
 import { useApp } from '../context/AppContext';
 import { Sale } from '../types';
@@ -20,7 +20,8 @@ import {
 
 export const SalesHistoryView: React.FC = () => {
   const { 
-    sales, 
+    sales,
+    restoreSale, 
     currentUser, 
     formatCurrency, 
     exportToCSV, 
@@ -33,6 +34,26 @@ export const SalesHistoryView: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] = useState<string>('ALL');
   const [selectedEmployee, setSelectedEmployee] = useState<string>('ALL');
   const [activeReceiptSale, setActiveReceiptSale] = useState<Sale | null>(null);
+  const [restoreTarget, setRestoreTarget] = useState<Sale | null>(null);
+  const [restoring, setRestoring] = useState(false);
+  const [restoreError, setRestoreError] = useState('');
+  const [notice, setNotice] = useState('');
+  const restoreDialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    if (restoreTarget) restoreDialog.current?.showModal();
+    else restoreDialog.current?.close();
+  }, [restoreTarget]);
+  const confirmRestore = async () => {
+    if (!restoreTarget || restoring) return;
+    setRestoring(true); setRestoreError('');
+    try {
+      await restoreSale(restoreTarget.id);
+      setNotice(`${restoreTarget.itemCode} restored to available stock.`);
+      setRestoreTarget(null);
+    } catch (error) {
+      setRestoreError(error instanceof Error ? error.message : 'Unable to restore. Please try again.');
+    } finally { setRestoring(false); }
+  };
   const receiptRef = useRef<HTMLDivElement>(null);
 
   const downloadReceipt = async () => {
@@ -99,9 +120,9 @@ export const SalesHistoryView: React.FC = () => {
     }).sort((a, b) => new Date(b.saleDate).getTime() - new Date(a.saleDate).getTime());
   }, [sales, searchQuery, selectedPeriod, selectedEmployee]);
 
-  const totalRevenue = useMemo(() => filteredSales.reduce((acc, s) => acc + s.soldPrice, 0), [filteredSales]);
-  const totalProfit = useMemo(() => filteredSales.reduce((acc, s) => acc + s.profit, 0), [filteredSales]);
-  const totalDiscount = useMemo(() => filteredSales.reduce((acc, s) => acc + s.discount, 0), [filteredSales]);
+  const totalRevenue = useMemo(() => filteredSales.filter(s => !s.restoredAt).reduce((acc, s) => acc + s.soldPrice, 0), [filteredSales]);
+  const totalProfit = useMemo(() => filteredSales.filter(s => !s.restoredAt).reduce((acc, s) => acc + s.profit, 0), [filteredSales]);
+  const totalDiscount = useMemo(() => filteredSales.filter(s => !s.restoredAt).reduce((acc, s) => acc + s.discount, 0), [filteredSales]);
 
   // Unique employees from sales
   const employeeNames = Array.from(new Set(sales.map(s => s.employeeName)));
@@ -111,13 +132,13 @@ export const SalesHistoryView: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex flex-wrap items-center gap-2">
             <span>Sales Records & Transactions</span>
             <span className="text-xs px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-full font-mono font-bold">
               {filteredSales.length} Transactions
             </span>
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">Historical sales audit trail connected to Google Sheets database</p>
+          <p className="text-xs text-slate-500 mt-0.5">Review sales, download receipts, or restore items to stock.</p>
         </div>
 
         <div className="flex items-center gap-2">
@@ -138,7 +159,7 @@ export const SalesHistoryView: React.FC = () => {
           <div className="text-2xl font-black text-blue-900 font-mono mt-1">
             {formatCurrency(totalRevenue)}
           </div>
-          <div className="text-xs text-slate-500 mt-1">Across {filteredSales.length} confirmed sales</div>
+          <div className="text-xs text-slate-500 mt-1">Across {filteredSales.filter(s => !s.restoredAt).length} completed sales</div>
         </div>
 
         {isAdmin && (
@@ -148,7 +169,7 @@ export const SalesHistoryView: React.FC = () => {
               +{formatCurrency(totalProfit)}
             </div>
             <div className="text-xs text-emerald-700 mt-1">
-              Avg Profit: {filteredSales.length > 0 ? formatCurrency(Math.round(totalProfit / filteredSales.length)) : 'Rs. 0'}
+              Avg Profit: {filteredSales.some(s => !s.restoredAt) ? formatCurrency(Math.round(totalProfit / filteredSales.filter(s => !s.restoredAt).length)) : 'Rs. 0'}
             </div>
           </div>
         )}
@@ -200,8 +221,20 @@ export const SalesHistoryView: React.FC = () => {
         </div>
       </div>
 
+      {notice && <div role="status" className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">{notice}</div>}
+      <div className="sales-mobile-list">
+        {filteredSales.length === 0 && <p className="p-6 text-center text-slate-500">No sales match these filters.</p>}
+        {filteredSales.map(sale => <article key={sale.id} className="sale-card">
+          <div className="flex justify-between gap-3"><span className="text-xs font-bold text-teal-700">{sale.itemCode}</span><span className={sale.restoredAt ? 'sale-restored' : 'sale-completed'}>{sale.restoredAt ? 'Restored' : 'Completed'}</span></div>
+          <h2 className="font-bold text-slate-900 mt-2 break-words">{sale.itemName}</h2>
+          <p className="text-sm text-slate-500 mt-1">{sale.customerName} · Qty {sale.quantity || 1}</p>
+          <div className="flex justify-between gap-3 my-4"><strong>{formatCurrency(sale.soldPrice)}</strong><span className="text-xs text-slate-500">{new Date(sale.saleDate).toLocaleDateString()}</span></div>
+          <div className="flex gap-2"><button className="sale-secondary" onClick={() => setActiveReceiptSale(sale)}>Receipt</button>
+          {isAdmin && !sale.restoredAt && <button className="sale-restore" onClick={() => { setRestoreError(''); setRestoreTarget(sale); }}>Restore</button>}</div>
+        </article>)}
+      </div>
       {/* Sales Records Table */}
-      <div className="bg-white rounded-3xl border border-slate-200/90 shadow-xs overflow-hidden">
+      <div className="sales-desktop-table bg-white rounded-3xl border border-slate-200/90 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50/80 text-slate-500 font-bold uppercase tracking-wider text-[10px] border-b border-slate-200/80">
@@ -214,7 +247,7 @@ export const SalesHistoryView: React.FC = () => {
                 {isAdmin && <th className="p-3.5">Profit</th>}
                 <th className="p-3.5">Handled By</th>
                 <th className="p-3.5">Date</th>
-                <th className="p-3.5 text-right">Receipt</th>
+                <th className="p-3.5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-mono">
@@ -227,7 +260,7 @@ export const SalesHistoryView: React.FC = () => {
               ) : (
                 filteredSales.map(sale => (
                   <tr key={sale.id} className="hover:bg-slate-50/80 transition">
-                    <td className="p-3.5 text-slate-400 text-[11px]">{sale.id}</td>
+                    <td className="p-3.5 text-slate-400 text-[11px]">{sale.id}{sale.restoredAt && <span className="sale-restored block mt-2">Restored</span>}</td>
                     <td className="p-3.5 font-sans">
                       <div className="flex items-center gap-2">
                         <span className="font-mono font-bold text-xs bg-slate-100 text-blue-800 px-2 py-0.5 rounded-lg border border-slate-200">
@@ -267,6 +300,7 @@ export const SalesHistoryView: React.FC = () => {
                       >
                         Receipt
                       </button>
+                      {isAdmin && !sale.restoredAt && <button className="sale-restore mt-2" onClick={() => { setRestoreError(''); setRestoreTarget(sale); }}>Restore</button>}
                     </td>
                   </tr>
                 ))
@@ -276,10 +310,17 @@ export const SalesHistoryView: React.FC = () => {
         </div>
       </div>
 
+      <dialog ref={restoreDialog} className="restore-dialog" onCancel={event => { if (restoring) event.preventDefault(); else setRestoreTarget(null); }} aria-labelledby="restore-title">
+        <h2 id="restore-title" className="text-xl font-bold">Restore item?</h2>
+        <p className="mt-3 text-sm text-slate-600">Restore <strong>{restoreTarget?.quantity || 1} × {restoreTarget?.itemName}</strong> to available stock. This sale will be excluded from sales and profit totals. Its original record will remain in history.</p>
+        <p className="mt-3 text-xs text-slate-500">This does not send a payment or issue a refund.</p>
+        {restoreError && <p role="alert" className="mt-4 text-sm text-red-700">{restoreError}</p>}
+        <div className="flex gap-3 mt-6"><button className="sale-secondary" disabled={restoring} onClick={() => setRestoreTarget(null)}>Cancel</button><button className="sale-restore" disabled={restoring} onClick={() => void confirmRestore()}>{restoring ? 'Restoring…' : 'Restore item'}</button></div>
+      </dialog>
       {/* Invoice / Receipt Modal */}
       {activeReceiptSale && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl border border-slate-200 overflow-hidden p-6 space-y-4">
+          <div className="bg-white w-full max-w-md max-h-[90dvh] overflow-y-auto rounded-3xl shadow-2xl border border-slate-200 overflow-hidden p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="text-sm font-bold text-slate-900">Sale Transaction Receipt</h3>
               <button
@@ -291,6 +332,7 @@ export const SalesHistoryView: React.FC = () => {
             </div>
 
             <div ref={receiptRef} className="p-4 bg-white rounded-2xl border border-slate-200 font-mono text-xs text-slate-800 space-y-3">
+              {activeReceiptSale.restoredAt && <p className="sale-restored">Restored on {new Date(activeReceiptSale.restoredAt).toLocaleDateString()} — excluded from sales totals</p>}
               <div className="text-center border-b border-slate-200 pb-2">
                 <div className="font-bold text-sm uppercase">{settings.companyName}</div>
                 <div className="text-[10px] text-slate-500">{settings.tagline}</div>
