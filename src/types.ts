@@ -3,6 +3,7 @@ export type UserRole = 'ADMIN' | 'EMPLOYEE';
 export type UserStatus = 'ACTIVE' | 'DISABLED';
 
 export interface User {
+  permissions?: string[];
   id: string;
   name: string;
   username: string;

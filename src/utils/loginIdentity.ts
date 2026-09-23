@@ -2,5 +2,5 @@
 export function resolveLoginEmail(username: string, configuredUsername: string, adminEmail: string): string | null {
   const alias = configuredUsername.trim().toLowerCase();
   return alias && username.trim().toLowerCase() === alias && adminEmail.trim().includes('@')
-    ? adminEmail.trim() : null;
+    ? adminEmail.trim() : /^[a-z0-9_]{3,32}$/.test(username.trim().toLowerCase()) ? `${username.trim().toLowerCase()}@staff.wdjlanka.invalid` : null;
 }

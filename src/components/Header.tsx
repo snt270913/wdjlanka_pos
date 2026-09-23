@@ -216,7 +216,7 @@ export const Header: React.FC<HeaderProps> = ({ setMobileOpen }) => {
           )}
         </div>
 
-        {/* Administrator Profile Dropdown */}
+        {/* Account Profile Dropdown */}
         <div className="relative" ref={userRef}>
           <button
             id="header-user-menu-button"
@@ -234,7 +234,7 @@ export const Header: React.FC<HeaderProps> = ({ setMobileOpen }) => {
               <div className="text-xs font-bold text-slate-800 leading-tight truncate max-w-[140px]">{currentUser?.name || 'Administrator'}</div>
               <div className="text-[10px] text-slate-500 flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                <span className="font-semibold text-blue-600">Administrator</span>
+                <span className="font-semibold text-blue-600">{currentUser?.role === 'ADMIN' ? 'Administrator' : 'Staff'}</span>
               </div>
             </div>
             <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
@@ -249,12 +249,12 @@ export const Header: React.FC<HeaderProps> = ({ setMobileOpen }) => {
                 <div className="mt-1">
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-[10px] font-bold">
                     <ShieldCheck className="w-3 h-3" />
-                    Full Admin Access
+                    {isAdmin ? 'Full Admin Access' : 'Assigned Staff Access'}
                   </span>
                 </div>
               </div>
 
-              <div className="mt-1 pt-1 px-1.5">
+              {isAdmin && <div className="mt-1 pt-1 px-1.5">
                 <button
                   onClick={() => {
                     if (window.confirm('Clear all inventory and sales from the database? This cannot be undone.')) {
@@ -267,7 +267,7 @@ export const Header: React.FC<HeaderProps> = ({ setMobileOpen }) => {
                   <RotateCcw className="w-3.5 h-3.5" />
                   <span>Clear Inventory &amp; Sales</span>
                 </button>
-              </div>
+              </div>}
             </div>
           )}
         </div>
