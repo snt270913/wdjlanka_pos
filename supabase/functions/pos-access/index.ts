@@ -28,6 +28,17 @@ Deno.serve(async req => {
   try {
     if (Number(req.headers.get('content-length') || 0) > 65536) return reply({ error: 'Request too large' }, 413);
     const body = await req.json(); const db = client();
+    // Opaque device ID only: return availability, never identity or session data.
+    if (body.action === 'pin-status') {
+      if (!/^[0-9a-f-]{36}$/.test(body.deviceId || '')) return reply({ available: false });
+      const device = ensure(await db.from('pos_pin_devices').select('user_id,attempts').eq('id', body.deviceId).maybeSingle());
+      if (!device || device.attempts >= 5) return reply({ available: false });
+      const target = ensure(await db.auth.admin.getUserById(device.user_id)).user;
+      if (!target || (target.banned_until && new Date(target.banned_until) > new Date())) return reply({ available: false });
+      if (target.app_metadata?.role === 'ADMIN') return reply({ available: true });
+      const staff = ensure(await db.from('pos_staff').select('active').eq('user_id', device.user_id).maybeSingle());
+      return reply({ available: staff?.active === true });
+    }
     // This route uses a registered-device secret AND a rate-limited PIN, not an anonymous JWT.
     if (body.action === 'unlock') {
       if (!/^[0-9]{6}$/.test(body.pin || '') || typeof body.secret !== 'string' || body.secret.length !== 64 || !/^[0-9a-f-]{36}$/.test(body.deviceId || '')) return reply({ error: 'PIN unavailable. Sign in with your password.' }, 401);

@@ -1,13 +1,14 @@
 import { accessApi } from '../data/accessApi';
-import { getPinDevice } from '../utils/deviceSession';
+import { getPinDevice, forgetPinDevice } from '../utils/deviceSession';
 import { supabase } from '../supabaseClient';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { ArrowRight, Building2, CheckCircle2, Eye, EyeOff, KeyRound, LockKeyhole, Fingerprint, Package, BarChart3, ScanLine, ShieldCheck, LoaderCircle } from 'lucide-react';
 
 export const LoginScreen: React.FC = () => {
   const { login } = useApp();
-  const device = getPinDevice();
+  const [device, setDevice] = useState(getPinDevice);
+  const [deviceVerified, setDeviceVerified] = useState(false);
   const [useDevicePin, setUseDevicePin] = useState(Boolean(device));
   const [devicePin, setDevicePin] = useState('');
   const [username, setUsername] = useState('');
@@ -15,6 +16,34 @@ export const LoginScreen: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [showPin, setShowPin] = useState(false);
   const [authenticating, setAuthenticating] = useState(false);
+
+  useEffect(() => {
+    if (!device) return;
+    let cancelled = false;
+    let pending = false;
+    const check = async () => {
+      if (pending) return;
+      pending = true;
+      try {
+        const status = await accessApi<{ available: boolean }>('pin-status', { deviceId: device.deviceId });
+        if (cancelled) return;
+        if (!status.available) {
+          // Do not erase a newer device registration from another tab.
+          if (getPinDevice()?.deviceId === device.deviceId) forgetPinDevice();
+          setDevice(null); setUseDevicePin(false); setDevicePin('');
+        }
+        setDeviceVerified(status.available);
+      } catch {
+        // A network error must not revoke a valid saved device.
+        if (!cancelled) setDeviceVerified(false);
+      } finally { pending = false; }
+    };
+    void check();
+    const timer = window.setInterval(() => void check(), 30000);
+    const onFocus = () => void check();
+    window.addEventListener('focus', onFocus);
+    return () => { cancelled = true; window.clearInterval(timer); window.removeEventListener('focus', onFocus); };
+  }, [device]);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -72,7 +101,7 @@ export const LoginScreen: React.FC = () => {
           <div className="login-access-label"><ShieldCheck size={16} /> YOUR WORKSPACE</div>
           <h2>Welcome back.</h2><p className="login-intro">Sign in to take care of business.</p>
           {error && <div role="alert" className="login-error">{error}</div>}
-          {useDevicePin && device ? <form className="login-form" onSubmit={unlock}>
+          {useDevicePin && device && deviceVerified ? <form className="login-form" onSubmit={unlock}>
             <label>PIN for {device.name}<input autoFocus required type="password" inputMode="numeric" pattern="[0-9]{6}" maxLength={6} autoComplete="off" value={devicePin} onChange={e=>setDevicePin(e.target.value.replace(/\D/g,''))}/></label>
             <button className="login-primary" disabled={authenticating}>{authenticating?'Unlocking…':'Unlock with PIN'}</button>
             <button type="button" className="sale-secondary" onClick={()=>{setUseDevicePin(false);setError(null);}}>Use username & password</button>
@@ -81,7 +110,7 @@ export const LoginScreen: React.FC = () => {
             <div><label htmlFor="login-pin-input">Password</label><div className="login-password"><LockKeyhole size={18} /><input id="login-pin-input" type={showPin ? 'text' : 'password'} autoComplete="current-password" value={pin} onChange={event => setPin(event.target.value)} required placeholder="Enter your password" aria-invalid={!!error} /><button type="button" aria-label={showPin ? 'Hide password' : 'Show password'} aria-pressed={showPin} onClick={() => setShowPin(!showPin)}>{showPin ? <EyeOff size={18} /> : <Eye size={18} />}</button></div></div>
             <button type="submit" disabled={authenticating} className="login-primary">{authenticating ? <><LoaderCircle className="login-spinner" size={18} /> Signing in...</> : <>Sign in to workspace <ArrowRight size={18} /></>}</button>
           </form>}
-          {!useDevicePin && device && <button className="sale-secondary mt-3" onClick={()=>setUseDevicePin(true)}>Use device PIN</button>}
+          {!useDevicePin && device && deviceVerified && <button className="sale-secondary mt-3" onClick={()=>setUseDevicePin(true)}>Use device PIN</button>}
           <div className="login-divider"><span /> or use quick login <span /></div>
           <button type="button" disabled={authenticating || !biometricSupported || !supabase} onClick={biometricLogin} className="login-biometric"><Fingerprint size={22} /> Biometric Login</button>
           <p className="login-help">{biometricSupported ? 'Enable fingerprint or Face ID in Security settings after your first password sign-in. Your device may also offer its PIN.' : 'Biometric login is unavailable on this browser. Use your username and password.'}</p>
