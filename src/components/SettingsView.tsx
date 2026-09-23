@@ -114,8 +114,8 @@ export const SettingsView: React.FC = () => {
   const handleChangePin = async (e: React.FormEvent) => {
     e.preventDefault();
     setPinMessage(null); setPinError(false);
-    if (newPin.length < 12 || newPin !== confirmPin) {
-      setPinError(true); setPinMessage('Use at least 12 characters and matching passwords.'); return;
+    if (newPin.length < 6 || newPin !== confirmPin) {
+      setPinError(true); setPinMessage('Use at least 6 characters and matching passwords.'); return;
     }
     try {
       if (!supabase) throw new Error('Sign-in is not configured.');
@@ -291,11 +291,11 @@ export const SettingsView: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
                 <label className="block font-semibold text-slate-700 mb-1.5">New Password</label>
-                <input type="password"  minLength={12} value={newPin} onChange={(e) => setNewPin(e.target.value)} className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition" required />
+                <input type="password"  minLength={6} value={newPin} onChange={(e) => setNewPin(e.target.value)} className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition" required />
               </div>
               <div>
                 <label className="block font-semibold text-slate-700 mb-1.5">Confirm New Password</label>
-                <input type="password"  minLength={12} value={confirmPin} onChange={(e) => setConfirmPin(e.target.value)} className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition" required />
+                <input type="password"  minLength={6} value={confirmPin} onChange={(e) => setConfirmPin(e.target.value)} className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition" required />
               </div>
             </div>
             <button type="submit" className="px-5 py-2.5 bg-slate-900 hover:bg-slate-700 text-white rounded-2xl font-bold transition cursor-pointer shadow-xs">Update Admin Password</button>

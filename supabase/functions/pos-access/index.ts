@@ -80,7 +80,7 @@ Deno.serve(async req => {
     if (body.action === 'staff-list') return reply(ensure(await db.from('pos_staff').select('*').order('created_at')));
     if (body.action === 'staff-create') {
       const username = String(body.username || '').trim().toLowerCase(); const name = String(body.name || '').trim();
-      if (!/^[a-z0-9_]{3,32}$/.test(username) || !name || String(body.password || '').length < 12) throw new Error('Use a 3–32 character username and a password of at least 12 characters.');
+      if (!/^[a-z0-9_]{3,32}$/.test(username) || !name || String(body.password || '').length < 6) throw new Error('Use a 3–32 character username and a password of at least 6 characters.');
       const created = ensure(await db.auth.admin.createUser({ email: `${username}@staff.wdjlanka.invalid`, password: body.password, email_confirm: true, app_metadata: { role: 'EMPLOYEE' } })).user;
       const saved = await db.from('pos_staff').insert({ user_id: created.id, username, name: name.slice(0, 120), permissions: safePermissions(body.permissions) });
       if (saved.error) { await db.auth.admin.deleteUser(created.id); throw new Error('Unable to create staff account. The username may already exist.'); }
@@ -96,7 +96,7 @@ Deno.serve(async req => {
     }
     if (body.action === 'staff-password') {
       const row = ensure(await db.from('pos_staff').select('user_id').eq('user_id', body.userId).single());
-      if (String(body.password || '').length < 12) throw new Error('Password must have at least 12 characters.');
+      if (String(body.password || '').length < 6) throw new Error('Password must have at least 6 characters.');
       ensure(await db.auth.admin.updateUserById(row.user_id, { password: body.password }));
       ensure(await db.from('pos_pin_devices').delete().eq('user_id', row.user_id));
       return reply({ ok: true });
