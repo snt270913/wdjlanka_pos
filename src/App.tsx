@@ -1,3 +1,6 @@
+import { DevicePinSettings } from './components/DevicePinSettings';
+import { BiometricSettings } from './components/BiometricSettings';
+import { canOpenTab, canAccess } from './data/accessApi';
 import { LayoutDashboard, Package, Plus, ShoppingBag, Menu } from 'lucide-react';
 import React, { useState } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
@@ -33,9 +36,10 @@ const AppContent: React.FC = () => {
 
   // Render tab views in Admin-Only portal
   const renderTabContent = () => {
+    if (!canOpenTab(currentUser, activeTab)) return <div className="p-6">Your account does not have access to this page.</div>;
     switch (activeTab) {
       case 'dashboard':
-        return <AdminDashboard />;
+        return currentUser.role === 'ADMIN' ? <AdminDashboard /> : <ItemsView />;
       case 'items':
         return <ItemsView />;
       case 'sales':
@@ -51,9 +55,9 @@ const AppContent: React.FC = () => {
       case 'qr-labels':
         return <QRLabelGeneratorView />;
       case 'settings':
-        return <SettingsView />;
+        return currentUser.role === 'ADMIN' ? <SettingsView /> : <div className="p-4 space-y-4"><DevicePinSettings /><BiometricSettings /></div>;
       default:
-        return <AdminDashboard />;
+        return currentUser.role === 'ADMIN' ? <AdminDashboard /> : <ItemsView />;
     }
   };
 
@@ -71,16 +75,16 @@ const AppContent: React.FC = () => {
         </main>
       </div>
 
-      <nav className="mobile-dock" aria-label="Quick navigation">
+      <nav className="mobile-dock" style={{ gridAutoFlow: 'column', gridTemplateColumns: currentUser.role === 'ADMIN' ? undefined : 'none', gridAutoColumns: '1fr' }} aria-label="Quick navigation">
         <button aria-current={activeTab === 'dashboard' ? 'page' : undefined} onClick={() => setActiveTab('dashboard')}><LayoutDashboard size={20} /><span>Overview</span></button>
         <button aria-current={activeTab === 'items' ? 'page' : undefined} onClick={() => setActiveTab('items')}><Package size={20} /><span>Items</span></button>
-        <button className="dock-add" onClick={() => setIsAddItemOpen(true)}><Plus size={24} /><span>Add item</span></button>
-        <button aria-current={activeTab === 'sales' ? 'page' : undefined} onClick={() => setActiveTab('sales')}><ShoppingBag size={20} /><span>Sales</span></button>
+        {currentUser.role === 'ADMIN' && <button className="dock-add" onClick={() => setIsAddItemOpen(true)}><Plus size={24} /><span>Add item</span></button>}
+        {canOpenTab(currentUser, 'sales') && <button aria-current={activeTab === 'sales' ? 'page' : undefined} onClick={() => setActiveTab('sales')}><ShoppingBag size={20} /><span>Sales</span></button>}
         <button aria-expanded={mobileOpen} onClick={() => setMobileOpen(true)}><Menu size={20} /><span>More</span></button>
       </nav>
       {/* Universal Global Modals */}
-      <AddItemModal />
-      <MarkSoldModal />
+      {currentUser.role === 'ADMIN' && <AddItemModal />}
+      {canAccess(currentUser, 'sell') && <MarkSoldModal />}
       <ItemDetailModal />
       <QRScannerModal />
       <GlobalSearchModal />

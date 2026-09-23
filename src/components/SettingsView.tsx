@@ -1,3 +1,5 @@
+import { DevicePinSettings } from './DevicePinSettings';
+import { StaffAccessSettings } from './StaffAccessSettings';
 import { BiometricSettings } from './BiometricSettings';
 import { supabase } from '../supabaseClient';
 import React, { useState } from 'react';
@@ -34,7 +36,7 @@ export const SettingsView: React.FC = () => {
     formatCurrency 
   } = useApp();
 
-  const [activeSection, setActiveSection] = useState<'business' | 'security' | 'categories' | 'sheets' | 'recycle'>('business');
+  const [activeSection, setActiveSection] = useState<'business' | 'security' | 'categories' | 'sheets' | 'recycle' | 'staff'>('business');
 
   // Business settings state
   const [companyName, setCompanyName] = useState(settings.companyName);
@@ -136,6 +138,7 @@ export const SettingsView: React.FC = () => {
 
       {/* Nav Tabs Bento Bar */}
       <div className="bg-white p-2 rounded-3xl border border-slate-200/90 shadow-xs flex flex-wrap gap-1.5">
+        <button className="sale-secondary" onClick={() => setActiveSection('staff')}>Staff & access</button>
         <button
           onClick={() => setActiveSection('business')}
           className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition cursor-pointer flex items-center gap-2 ${
@@ -268,6 +271,8 @@ export const SettingsView: React.FC = () => {
         </div>
       )}
 
+      {activeSection === 'staff' && <StaffAccessSettings />}
+      {activeSection === 'security' && <DevicePinSettings />}
       {activeSection === 'security' && (
         <div className="bg-white p-7 rounded-3xl border border-slate-200/90 shadow-xs max-w-3xl space-y-6">
           <div className="flex items-center gap-3 border-b border-slate-100 pb-3">

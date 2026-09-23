@@ -1,3 +1,4 @@
+import { accessApi, canAccess, StaffData } from '../data/accessApi';
 import { resolveLoginEmail } from '../utils/loginIdentity';
 import { supabase } from '../supabaseClient';
 import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
@@ -161,10 +162,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         const { data, error } = await supabase.auth.getUser();
         if (!active || request !== generation) return;
         const user = data.user;
-        setCurrentUser(!error && user?.app_metadata?.role === 'ADMIN' ? {
+        const account: User | null = !error && user ? (user.app_metadata?.role === 'ADMIN' ? {
           id: user.id, name: 'Administrator', username: user.email || '',
           role: 'ADMIN', status: 'ACTIVE', dateCreated: user.created_at,
-        } : null);
+        } : await accessApi<User>('me')) : null;
+        if (active && request === generation) setCurrentUser(account);
       } catch {
         if (active && request === generation) setCurrentUser(null);
       } finally {
@@ -184,6 +186,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     });
     return () => { active = false; generation++; subscription.unsubscribe(); };
   }, []);
+
+  useEffect(() => {
+    if (currentUser?.role !== 'EMPLOYEE') return;
+    const check = async () => {
+      try {
+        const next = await accessApi<User>('me');
+        if (JSON.stringify(next.permissions) !== JSON.stringify(currentUser.permissions)) window.location.reload();
+      } catch { setCurrentUser(null); }
+    };
+    const timer = window.setInterval(() => void check(), 30000);
+    return () => window.clearInterval(timer);
+  }, [currentUser]);
 
   const [items, setItems] = useState<Item[]>(() => {
     return [];
@@ -250,13 +264,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setDataError(null);
     if (!hasSupabase() || !currentUser) return;
     let cancelled = false;
-    Promise.all([
+    const loading = currentUser.role === 'EMPLOYEE' ? accessApi<StaffData>('data').then(d => [d.items, d.categories, d.sales, d.customers, d.customer_requests] as const) : Promise.all([
       loadSupabaseCollection<Item>('items'),
       loadSupabaseCollection<Category>('categories'),
       loadSupabaseCollection<Sale>('sales'),
       loadSupabaseCollection<Customer>('customers'),
       loadSupabaseCollection<CustomerRequest>('customer_requests'),
-    ]).then(([cloudItems, cloudCategories, cloudSales, cloudCustomers, cloudRequests]) => {
+    ]);
+    loading.then(([cloudItems, cloudCategories, cloudSales, cloudCustomers, cloudRequests]) => {
       if (cancelled) return;
       setItems((cloudItems || []).map(item => ({ ...item, quantity: item.quantity ?? 1 })));
       setCategories(cloudCategories || []);
@@ -271,7 +286,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
 
   useEffect(() => {
-    localStorage.setItem('wdj_logs_v2', JSON.stringify(activityLogs));
+    if (currentUser?.role === 'ADMIN') localStorage.setItem('wdj_logs_v2', JSON.stringify(activityLogs));
   }, [activityLogs]);
 
   useEffect(() => {
@@ -346,6 +361,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const addItemToCart = (item: Item) => {
+    if (!canAccess(currentUser, 'sell')) { window.alert('Sales access is not permitted.'); return; }
     if (item.status !== 'AVAILABLE' || (item.quantity ?? 1) < 1) return;
     setCart(prev => {
       const existing = prev.find(line => line.item.id === item.id);
@@ -483,6 +499,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     customerPhone: string,
     note?: string
   ): Promise<{ success: boolean; message: string; sale?: Sale }> => {
+    if (currentUser?.role !== 'ADMIN') return { success: false, message: 'Use the POS cart to sell items.' };
     const target = items.find(i => i.id === itemId);
     if (!target) return { success: false, message: 'Item not found.' };
 
@@ -588,6 +605,24 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const checkoutCart = async (customerName: string, customerPhone: string, note?: string): Promise<{ success: boolean; message: string; sales: Sale[] }> => {
     if (cart.length === 0) return { success: false, message: 'Your cart is empty.', sales: [] };
+    if (currentUser?.role === 'EMPLOYEE') {
+      if (!canAccess(currentUser, 'sell')) return { success: false, message: 'Sales access is not permitted.', sales: [] };
+      try {
+        const signature = JSON.stringify([currentUser.id, cart.map(line => [line.item.id, line.quantity, line.discountEnabled ? line.discount : 0]), customerName, customerPhone, note]);
+        const saved = JSON.parse(sessionStorage.getItem('wdj_pending_checkout') || 'null');
+        const requestId = saved?.signature === signature ? saved.requestId : crypto.randomUUID();
+        sessionStorage.setItem('wdj_pending_checkout', JSON.stringify({ signature, requestId }));
+        const result = await accessApi<{ sales: Sale[] }>('checkout', { requestId, lines: cart.map(line => ({ itemId: line.item.id, quantity: line.quantity, discount: line.discountEnabled ? line.discount : 0 })), name: customerName, phone: customerPhone, note });
+        sessionStorage.removeItem('wdj_pending_checkout');
+        setCart([]); setSelectedItemForSaleState(null); setIsCartOpen(false);
+        try {
+          const fresh = await accessApi<StaffData>('data');
+          setItems(fresh.items); setSales(fresh.sales); setCustomers(fresh.customers);
+        } catch { setDataError('Sale saved successfully. Reload to refresh stock before the next sale.'); }
+        return { success: true, message: 'Sale completed.', sales: result.sales };
+      } catch (error) { return { success: false, message: error instanceof Error ? error.message : 'Unable to complete sale.', sales: [] }; }
+    }
+
     const currentCart = cart.map(line => {
       const currentItem = items.find(item => item.id === line.item.id);
       return currentItem ? { ...line, item: currentItem } : line;
@@ -885,8 +920,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
       if (error || !data.user) return { success: false, message: 'Unable to sign in. Check your username and password.' };
       if (data.user.app_metadata?.role !== 'ADMIN') {
-        await supabase.auth.signOut();
-        return { success: false, message: 'This account does not have admin access.' };
+        try { await accessApi('me'); } catch { await supabase.auth.signOut(); return { success: false, message: 'This staff account is disabled or has no workspace access.' }; }
       }
       return { success: true, message: 'Signed in.' };
     } catch {
@@ -917,6 +951,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   // Clear all operational records and leave the database empty.
   const resetAllDataToDefault = () => {
+    if (currentUser?.role !== 'ADMIN') return;
     setItems([]);
     setTags(INITIAL_TAGS);
     setSales([]);

@@ -1,0 +1,32 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const vm = require('node:vm');
+const ts = require('typescript');
+function load(file, extra={}) {
+ const exports={};
+ const source=ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+ vm.runInNewContext(source,{exports,require:()=>({supabase:null}),...extra}); return exports;
+}
+const storage={getItem(k){return this[k]??null},setItem(k,v){this[k]=v},removeItem(k){delete this[k]}};
+const env={localStorage:storage,window:{addEventListener(){},location:{reload(){}}}};
+let session=load('src/utils/deviceSession.ts',env);
+session.deviceSessionStorage.setItem('sb-example-auth-token','private-session');
+assert.equal(storage['sb-example-auth-token'],'private-session');
+session.rememberPinDevice({deviceId:'id',secret:'device-secret',name:'Device'});
+assert.equal(storage['sb-example-auth-token'],undefined,'PIN enrollment must erase persisted tokens');
+assert.equal(session.deviceSessionStorage.getItem('sb-example-auth-token'),'private-session');
+session=load('src/utils/deviceSession.ts',env);
+assert.equal(session.deviceSessionStorage.getItem('sb-example-auth-token'),null,'Reload must require authentication');
+session.deviceSessionStorage.setItem('sb-example-auth-token','new-session');
+assert.equal(storage['sb-example-auth-token'],undefined,'Unlocked PIN session must stay memory-only');
+const identity=load('src/utils/loginIdentity.ts');
+assert.equal(identity.resolveLoginEmail('owner','owner','owner@example.com'),'owner@example.com');
+assert.equal(identity.resolveLoginEmail(' Cashier_1 ','owner','owner@example.com'),'cashier_1@staff.wdjlanka.invalid');
+assert.equal(identity.resolveLoginEmail('bad@input','owner','owner@example.com'),null);
+const access=load('src/data/accessApi.ts');
+const staff={role:'EMPLOYEE',permissions:['inventory','sell']};
+assert.equal(access.canOpenTab(staff,'reports'),false);
+assert.equal(access.canOpenTab(staff,'settings'),true);
+assert.equal(access.canAccess(staff,'sell'),true);
+assert.equal(access.canAccess(staff,'reports'),false);
+console.log('PASS: device sessions do not persist after PIN enrollment/reload; staff identity and permission boundaries.');

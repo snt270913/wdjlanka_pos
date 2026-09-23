@@ -1,3 +1,4 @@
+import { canAccess } from '../data/accessApi';
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { Item, ItemCondition, ItemStatus } from '../types';
@@ -579,7 +580,7 @@ export const ItemsView: React.FC = () => {
                       {/* Actions */}
                       <td className="p-3.5 text-right">
                         <div className="flex items-center justify-end gap-1.5">
-                          {item.status === 'AVAILABLE' && (
+                          {canAccess(currentUser, 'sell') && item.status === 'AVAILABLE' && (
                             <button
                               onClick={() => setSelectedItemForSale(item)}
                               title="Mark as Sold"
@@ -731,7 +732,7 @@ export const ItemsView: React.FC = () => {
                     Details
                   </button>
 
-                  {item.status === 'AVAILABLE' && (
+                  {canAccess(currentUser, 'sell') && item.status === 'AVAILABLE' && (
                     <button
                       onClick={() => setSelectedItemForSale(item)}
                       className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl text-center cursor-pointer transition"
@@ -788,7 +789,7 @@ export const ItemsView: React.FC = () => {
                       {age} Days
                     </div>
 
-                    {item.status === 'AVAILABLE' && (
+                    {canAccess(currentUser, 'sell') && item.status === 'AVAILABLE' && (
                       <button
                         onClick={() => setSelectedItemForSale(item)}
                         className="px-3 py-1.5 bg-emerald-600 text-white rounded-xl text-xs font-bold cursor-pointer hover:bg-emerald-500 transition"

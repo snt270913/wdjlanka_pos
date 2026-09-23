@@ -234,3 +234,22 @@ html.dark .shadow-xs, html.dark .shadow-sm, html.dark .shadow-md, html.dark .sha
   html.dark .sale-card { background: #111e30; border-color: #263449; }
 }
 @media print { .mobile-dock, .restore-dialog { display: none !important; } }
+
+@media screen {
+  .access-panel { padding: clamp(18px,3vw,28px); background: white; border: 1px solid #e1e7ed; border-radius: 20px; }
+  .access-panel h3 { font-size: 18px; font-weight: 750; color: #172b3a; }
+  .access-help { font-size: 13px; color: #64748b; line-height: 1.7; margin: 8px 0 20px; max-width: 760px; }
+  .access-form { display: grid; gap: 16px; max-width: 760px; }
+  .access-form label { display: grid; gap: 7px; font-size: 13px; font-weight: 600; }
+  .access-form input:not([type=checkbox]) { width: 100%; border: 1px solid #cbd5e1; padding: 12px; border-radius: 10px; min-height: 46px; color: #172b3a; background: white; }
+  .access-form small { font-weight: 400; color: #64748b; }
+  .access-columns { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }
+  .access-permissions { display: grid; grid-template-columns: repeat(auto-fit,minmax(215px,1fr)); gap: 10px; margin-top: 14px; }
+  .access-permissions label { display: flex; align-items: center; gap: 10px; font-size: 13px; min-height: 44px; padding: 8px; border: 1px solid #e2e8f0; border-radius: 10px; }
+  .access-permissions input { width: 18px; height: 18px; accent-color: #16736e; }
+  .access-message { background: #edf5f2; color: #254c44; border-radius: 10px; padding: 12px; margin: 12px 0; font-size: 13px; }
+  .access-panel button:disabled { opacity: .5; }
+  html.dark .access-panel { background: #111e30; border-color: #263449; }
+  html.dark .access-panel h3 { color: #e2e8f0; }
+  @media (max-width: 600px) { .access-columns { grid-template-columns: 1fr; } }
+}

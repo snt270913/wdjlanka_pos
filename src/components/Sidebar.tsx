@@ -1,3 +1,5 @@
+import { canOpenTab } from '../data/accessApi';
+import { getPinDevice } from '../utils/deviceSession';
 import React, { useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { 
@@ -164,7 +166,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
               <div className="flex items-center gap-1 mt-0.5">
                 <span className="inline-flex items-center gap-1 px-1.5 py-0.2 text-[9px] font-bold rounded-md uppercase tracking-wider bg-blue-500/20 text-blue-300 border border-blue-500/30">
                   <ShieldCheck className="w-2.5 h-2.5 text-blue-400" />
-                  Admin Only
+                  {currentUser?.role === 'ADMIN' ? 'Administrator' : 'Staff'}
                 </span>
               </div>
             </div>
@@ -185,7 +187,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
 
         {/* Navigation Items */}
         <nav aria-label="Main navigation" className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {navItems.map((item) => {
+          {navItems.filter(item => item.isAction ? currentUser?.role === 'ADMIN' : canOpenTab(currentUser, item.id)).map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
 
@@ -221,7 +223,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
 
         {/* Bottom Utility Actions */}
         <div className="p-3 border-t border-slate-800/80 space-y-1">
-          <button
+          {currentUser?.role === 'ADMIN' && <><button
             id="sidebar-google-sheets-button"
             onClick={() => { setMobileOpen(false); setIsGoogleSheetsModalOpen(true); }}
             className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-slate-400 hover:text-emerald-300 hover:bg-emerald-950/30 rounded-xl transition cursor-pointer"
@@ -249,6 +251,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, setMobileOpen }) =
             )}
           </button>
 
+          </>}
+          {getPinDevice() && <button className="w-full text-left px-3 py-2 text-xs" onClick={()=>window.location.reload()}>Lock with PIN</button>}
           <button
             id="sidebar-logout-button"
             onClick={logout}

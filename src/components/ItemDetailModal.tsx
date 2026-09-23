@@ -1,3 +1,4 @@
+import { canAccess } from '../data/accessApi';
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { Item, ItemCondition, ItemStatus } from '../types';
@@ -560,7 +561,7 @@ export const ItemDetailModal: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
-            {item.status === 'AVAILABLE' && (
+            {canAccess(currentUser, 'sell') && item.status === 'AVAILABLE' && (
               <button
                 id="item-detail-sell-btn"
                 onClick={() => {
