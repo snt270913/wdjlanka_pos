@@ -6,7 +6,7 @@ export function DevicePinSettings() {
   const [pin, setPin] = useState(''); const [confirm, setConfirm] = useState('');
   const [password, setPassword] = useState(''); const [name, setName] = useState('My device');
   const [busy, setBusy] = useState(false); const [message, setMessage] = useState('');
-  const [devices, setDevices] = useState<Array<{id:string;name:string;attempts:number;expires_at:string}>>([]);
+  const [devices, setDevices] = useState<Array<{id:string;name:string;attempts:number;expires_at:string|null}>>([]);
   const current = getPinDevice();
   const refresh = async () => setDevices(await accessApi('pin-list'));
   useEffect(() => { void refresh().catch(() => setMessage('Unable to load PIN devices. Try reloading.')); }, []);
@@ -33,7 +33,7 @@ export function DevicePinSettings() {
     finally { setBusy(false); }
   };
   return <section className="access-panel">
-    <h3>Device PIN</h3><p className="access-help">Quick unlock on this browser with a 6-digit PIN. Password and biometric login remain available. PIN expires after 90 days; five wrong attempts require password sign-in and PIN setup again.</p>
+    <h3>Device PIN</h3><p className="access-help">Quick unlock on this browser with a 6-digit PIN. Password and biometric login remain available. PIN stays enabled until you remove or reset it; five wrong attempts require password sign-in and PIN setup again.</p>
     {message && <p role="status" className="access-message">{message}</p>}
     <form onSubmit={save} className="access-form">
       <label>Device name<input required maxLength={80} value={name} onChange={e=>setName(e.target.value)} /></label>

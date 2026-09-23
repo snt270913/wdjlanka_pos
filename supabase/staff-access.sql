@@ -13,7 +13,7 @@ create table if not exists public.pos_pin_devices (
   name text not null,
   verifier text not null,
   attempts integer not null default 0,
-  expires_at timestamptz not null default now()+interval '90 days',
+  expires_at timestamptz,
   created_at timestamptz not null default now()
 );
 create index if not exists pos_pin_devices_user on public.pos_pin_devices(user_id);
@@ -43,7 +43,7 @@ returns jsonb language plpgsql security invoker set search_path='' as $$
 declare d public.pos_pin_devices;
 begin
   select * into d from public.pos_pin_devices where id=p_id for update;
-  if not found or d.attempts >= 5 or d.expires_at < now() then return jsonb_build_object('ok',false); end if;
+  if not found or d.attempts >= 5 then return jsonb_build_object('ok',false); end if;
   if extensions.crypt(p_proof,d.verifier) <> d.verifier then
     update public.pos_pin_devices set attempts=attempts+1 where id=p_id;
     return jsonb_build_object('ok',false);

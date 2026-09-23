@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import html2canvas from 'html2canvas';
+import { downloadReceiptPdf } from '../utils/receiptPdf';
 import { useApp } from '../context/AppContext';
 import { Sale } from '../types';
 import { 
@@ -56,25 +56,14 @@ export const SalesHistoryView: React.FC = () => {
   };
   const receiptRef = useRef<HTMLDivElement>(null);
 
+  const [downloading, setDownloading] = useState(false);
+  const [receiptError, setReceiptError] = useState('');
   const downloadReceipt = async () => {
-    if (!receiptRef.current || !activeReceiptSale) return;
-    const images = Array.from(receiptRef.current.querySelectorAll('img')) as HTMLImageElement[];
-    await Promise.all(images.map(image => image.complete
-      ? Promise.resolve()
-      : new Promise<void>(resolve => {
-          image.addEventListener('load', () => resolve(), { once: true });
-          image.addEventListener('error', () => resolve(), { once: true });
-        })));
-    const canvas = await html2canvas(receiptRef.current, {
-      backgroundColor: '#ffffff',
-      scale: Math.min(window.devicePixelRatio || 1, 2),
-      useCORS: true,
-      logging: false,
-    });
-    const link = document.createElement('a');
-    link.download = `receipt-${activeReceiptSale.id}.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
+    if (!activeReceiptSale || downloading) return;
+    setDownloading(true); setReceiptError('');
+    try { downloadReceiptPdf([activeReceiptSale], settings); }
+    catch { setReceiptError('Unable to download receipt. Please try again.'); }
+    finally { setDownloading(false); }
   };
 
   // Filter sales
@@ -385,13 +374,14 @@ export const SalesHistoryView: React.FC = () => {
               </div>
             </div>
 
+            {receiptError && <p role="alert" className="text-sm text-red-700">{receiptError}</p>}
             <div className="flex items-center gap-2">
               <button
-                onClick={() => void downloadReceipt()}
+                disabled={downloading} onClick={() => void downloadReceipt()}
                 className="flex-1 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <Download className="w-4 h-4" />
-                <span>Download</span>
+                <span>{downloading ? 'Downloading…' : 'Download PDF'}</span>
               </button>
               <button
                 onClick={() => window.print()}

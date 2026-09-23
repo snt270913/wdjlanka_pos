@@ -32,7 +32,7 @@ Deno.serve(async req => {
     if (body.action === 'unlock') {
       if (!/^[0-9]{6}$/.test(body.pin || '') || typeof body.secret !== 'string' || body.secret.length !== 64 || !/^[0-9a-f-]{36}$/.test(body.deviceId || '')) return reply({ error: 'PIN unavailable. Sign in with your password.' }, 401);
       const attempt = ensure(await db.rpc('pos_claim_pin', { p_id: body.deviceId, p_proof: await proof(body.deviceId, body.secret, body.pin) }));
-      if (!attempt.ok) return reply({ error: 'Incorrect PIN, expired device, or PIN locked after 5 attempts. Use your password to register this device again.' }, 401);
+      if (!attempt.ok) return reply({ error: 'Incorrect PIN, unregistered device, or PIN locked after 5 attempts. Use your password to register this device again.' }, 401);
       const user = ensure(await db.auth.admin.getUserById(attempt.user_id)).user;
       await member(db, user);
       if (!user.email || (user.banned_until && new Date(user.banned_until) > new Date())) throw new Error('Account disabled');
@@ -92,6 +92,16 @@ Deno.serve(async req => {
       ensure(await db.from('pos_staff').update({ active: body.active === true, permissions: safePermissions(body.permissions) }).eq('user_id', row.user_id));
       // Revoking staff access takes effect on every subsequent server request.
       if (!body.active) ensure(await db.from('pos_pin_devices').delete().eq('user_id', row.user_id));
+      return reply({ ok: true });
+    }
+    if (body.action === 'staff-delete') {
+      const row = ensure(await db.from('pos_staff').select('user_id').eq('user_id', body.userId).single());
+      const target = ensure(await db.auth.admin.getUserById(row.user_id)).user;
+      if (row.user_id === user.id || target.app_metadata?.role === 'ADMIN') throw new Error('Administrator accounts cannot be deleted here.');
+      // Disable first: existing JWTs cannot authorize subsequent workspace requests.
+      ensure(await db.from('pos_staff').update({ active: false }).eq('user_id', row.user_id));
+      ensure(await db.from('pos_pin_devices').delete().eq('user_id', row.user_id));
+      ensure(await db.auth.admin.deleteUser(row.user_id));
       return reply({ ok: true });
     }
     if (body.action === 'staff-password') {

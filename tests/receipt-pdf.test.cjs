@@ -1,0 +1,21 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const vm = require('node:vm');
+const ts = require('typescript');
+const { jsPDF } = require('jspdf');
+let saved;
+function TestPDF(options) { const pdf = new jsPDF(options); pdf.save = name => { saved = {name, text:pdf.output(), pages:pdf.getNumberOfPages()}; }; return pdf; }
+const exportsObject = {};
+vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/utils/receiptPdf.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,{exports:exportsObject,require:()=>({jsPDF:TestPDF})});
+const settings={currency:'Rs.',tagline:'Quality items',email:'',address:''};
+const sale={id:'test',itemCode:'B001',itemName:'Bicycle',quantity:2,originalPrice:200,soldPrice:200,discount:0,employeeName:'Staff',customerName:'Customer',saleDate:'2026-09-23'};
+exportsObject.downloadReceiptPdf([sale],settings);
+assert.equal(saved.name,'invoice-test.pdf');
+assert.ok(!/discount/i.test(saved.text),'Zero discounts must have no label or column');
+exportsObject.downloadReceiptPdf([sale,{...sale,id:'discounted',discount:20,soldPrice:180}],settings);
+assert.equal((saved.text.match(/Discount:/g)||[]).length,1,'Only discounted item has a discount row');
+assert.ok(saved.text.includes('Discount Applied'));
+exportsObject.downloadReceiptPdf(Array.from({length:40},(_,i)=>({...sale,id:String(i),restoredAt:i===0?'2026-09-24':undefined})),settings);
+assert.ok(saved.pages>1,'Long receipts must paginate');
+assert.ok(saved.text.includes('RESTORED'));
+console.log('PASS: PDF download, zero/mixed discount visibility, legacy missing customer ID, restored labels, pagination.');

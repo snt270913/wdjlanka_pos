@@ -13,7 +13,7 @@ import {
   Building2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { jsPDF } from 'jspdf';
+import { downloadReceiptPdf } from '../utils/receiptPdf';
 import { getItemImageUrl } from '../data/supabaseSync';
 
 export const MarkSoldModal: React.FC = () => {
@@ -89,101 +89,7 @@ export const MarkSoldModal: React.FC = () => {
 
     setIsDownloadingInvoice(true);
     try {
-      const firstSale = completedSales[0];
-      const totalDiscount = completedSales.reduce((sum, sale) => sum + sale.discount, 0);
-      const totalPaid = completedSales.reduce((sum, sale) => sum + sale.soldPrice, 0);
-      const invoice = new jsPDF({ unit: 'mm', format: 'a4' });
-      const pageWidth = invoice.internal.pageSize.getWidth();
-      const left = 20;
-      const right = pageWidth - 20;
-      const formatInvoiceCurrency = (amount: number) => `${settings.currency} ${amount.toLocaleString('en-LK')}`;
-
-      invoice.setFillColor(15, 23, 42);
-      invoice.rect(0, 0, pageWidth, 42, 'F');
-      invoice.setTextColor(255, 255, 255);
-      invoice.setFont('helvetica', 'bold');
-      invoice.setFontSize(22);
-      invoice.text('WDJLANKA (PVT) LTD', left, 18);
-      invoice.setFont('helvetica', 'normal');
-      invoice.setFontSize(8);
-      const taglineLines = invoice.splitTextToSize(settings.tagline || 'Sales & Inventory Invoice', 105);
-      invoice.text(taglineLines, left, 25, { lineHeightFactor: 1.25 });
-      const contactY = 25 + taglineLines.length * 4;
-      invoice.text(settings.email || '', left, contactY);
-      if (settings.address) invoice.text(invoice.splitTextToSize(settings.address, 70), right, contactY, { align: 'right' });
-      invoice.setFont('helvetica', 'bold');
-      invoice.setFontSize(18);
-      invoice.text('INVOICE', right, 20, { align: 'right' });
-      invoice.setFont('helvetica', 'normal');
-      invoice.setFontSize(9);
-      invoice.text(firstSale.id, right, 28, { align: 'right' });
-
-      invoice.setTextColor(15, 23, 42);
-      invoice.setFont('helvetica', 'bold');
-      invoice.setFontSize(11);
-      invoice.text('Transaction Details', left, 58);
-      invoice.setDrawColor(226, 232, 240);
-      invoice.line(left, 62, right, 62);
-      invoice.setFont('helvetica', 'normal');
-      invoice.setFontSize(10);
-      invoice.text(`Transaction ID: ${firstSale.id}`, left, 72);
-      invoice.text(`Date: ${new Date(firstSale.saleDate).toLocaleString()}`, left, 80);
-      invoice.text(`Employee: ${firstSale.employeeName}`, left, 88);
-      invoice.text('Bill To:', right - 55, 72);
-      invoice.setFont('helvetica', 'bold');
-      invoice.text(firstSale.customerName, right - 55, 80);
-      invoice.setFont('helvetica', 'normal');
-      if (firstSale.customerId.startsWith('CUS-')) {
-        invoice.text(`Customer Code: ${firstSale.customerId}`, right - 55, 88);
-      }
-
-      const tableTop = 106;
-      invoice.setFillColor(241, 245, 249);
-      invoice.roundedRect(left, tableTop, right - left, 12, 2, 2, 'F');
-      invoice.setTextColor(71, 85, 105);
-      invoice.setFont('helvetica', 'bold');
-      invoice.setFontSize(9);
-      invoice.text('ITEM / QTY', left + 5, tableTop + 7);
-      invoice.text('ITEM NAME / UNIT PRICE', left + 35, tableTop + 7);
-      invoice.text('DISCOUNT', right - 65, tableTop + 7, { align: 'right' });
-      invoice.text('LINE TOTAL', right - 5, tableTop + 7, { align: 'right' });
-
-      invoice.setTextColor(15, 23, 42);
-      invoice.setFont('helvetica', 'normal');
-      invoice.setFontSize(10);
-      completedSales.forEach((sale, index) => {
-        const rowTop = tableTop + 23 + index * 12;
-        invoice.text(`${sale.itemCode} | Qty: ${sale.quantity || 1}`, left + 5, rowTop);
-        invoice.text(invoice.splitTextToSize(`${sale.itemName} | Unit: ${formatInvoiceCurrency(sale.originalPrice / (sale.quantity || 1))}`, 65), left + 35, rowTop);
-        invoice.text(formatInvoiceCurrency(sale.discount), right - 65, rowTop, { align: 'right' });
-        invoice.text(formatInvoiceCurrency(sale.soldPrice), right - 5, rowTop, { align: 'right' });
-      });
-      invoice.setDrawColor(226, 232, 240);
-      invoice.line(left, tableTop + 24 + completedSales.length * 12, right, tableTop + 24 + completedSales.length * 12);
-
-      let totalTop = tableTop + 38 + completedSales.length * 12;
-      if (totalDiscount > 0) {
-        invoice.setTextColor(180, 83, 9);
-        invoice.text('Discount Applied', right - 55, totalTop, { align: 'right' });
-        invoice.text(`-${formatInvoiceCurrency(totalDiscount)}`, right - 5, totalTop, { align: 'right' });
-        totalTop += 9;
-      }
-      invoice.setFillColor(219, 234, 254);
-      invoice.roundedRect(right - 85, totalTop, 85, 17, 2, 2, 'F');
-      invoice.setTextColor(30, 64, 175);
-      invoice.setFont('helvetica', 'bold');
-      invoice.setFontSize(12);
-      invoice.text('TOTAL PAID', right - 48, totalTop + 11, { align: 'right' });
-      invoice.text(formatInvoiceCurrency(totalPaid), right - 5, totalTop + 11, { align: 'right' });
-
-      invoice.setTextColor(100, 116, 139);
-      invoice.setFont('helvetica', 'normal');
-      invoice.setFontSize(9);
-      invoice.text('Thank you for choosing WDJLANKA (PVT) LTD.', left, 265);
-      invoice.text('Please retain this invoice for your records. All sales are subject to store terms.', left, 272);
-      invoice.setDrawColor(203, 213, 225);
-      invoice.line(left, 258, right, 258);
-      invoice.save(`invoice-${firstSale.id}.pdf`);
+      downloadReceiptPdf(completedSales, settings);
     } catch {
       setErrorMessage('Unable to generate the invoice. Please try again.');
     } finally {
@@ -360,7 +266,7 @@ export const MarkSoldModal: React.FC = () => {
               </div>
 
               <div className="space-y-1 text-[11px]">
-                {completedSales.map(sale => <div key={sale.id} className="flex justify-between gap-3"><span className="text-slate-500">Item / Qty:</span><span className="truncate max-w-[260px]">{sale.itemCode} | Qty: {sale.quantity || 1} | Unit: {formatCurrency(sale.originalPrice / (sale.quantity || 1))} | Discount: {formatCurrency(sale.discount)} | Final: {formatCurrency(sale.soldPrice)} - {sale.itemName}</span></div>)}
+                {completedSales.map(sale => <div key={sale.id} className="flex justify-between gap-3"><span className="text-slate-500">Item / Qty:</span><span className="truncate max-w-[260px]">{sale.itemCode} | Qty: {sale.quantity || 1} | Unit: {formatCurrency(sale.originalPrice / (sale.quantity || 1))}{sale.discount > 0 && <> | Discount: {formatCurrency(sale.discount)}</>} | Final: {formatCurrency(sale.soldPrice)} - {sale.itemName}</span></div>)}
                 <div className="flex justify-between">
                   <span className="text-slate-500">Customer:</span>
                   <span>{completedSales[0].customerName}</span>
