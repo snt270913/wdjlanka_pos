@@ -25,7 +25,7 @@ import { QRScannerModal } from './components/QRScannerModal';
 import { GlobalSearchModal } from './components/GlobalSearchModal';
 
 const AppContent: React.FC = () => {
-  const { activeTab, setActiveTab, setIsAddItemOpen, currentUser, authLoading, dataError } = useApp();
+  const { activeTab, setActiveTab, setIsAddItemOpen, currentUser, authLoading, dataError, cart, isCartOpen, openCart, formatCurrency } = useApp();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   if (authLoading) return <main className="min-h-screen grid place-items-center bg-slate-950 text-white">Checking session...</main>;
@@ -75,6 +75,7 @@ const AppContent: React.FC = () => {
         </main>
       </div>
 
+      {cart.length > 0 && !isCartOpen && canAccess(currentUser, 'sell') && <button className="mobile-cart-summary" onClick={openCart}><ShoppingBag size={20}/><span><strong>{cart.reduce((n,line)=>n+line.quantity,0)} items in cart</strong><small>{formatCurrency(cart.reduce((n,line)=>n+Math.max(0,line.item.sellingPrice*line.quantity-(line.discountEnabled?line.discount:0)),0))}</small></span><b>Checkout →</b></button>}
       <nav className="mobile-dock" style={{ gridAutoFlow: 'column', gridTemplateColumns: currentUser.role === 'ADMIN' ? undefined : 'none', gridAutoColumns: '1fr' }} aria-label="Quick navigation">
         <button aria-current={activeTab === 'dashboard' ? 'page' : undefined} onClick={() => setActiveTab('dashboard')}><LayoutDashboard size={20} /><span>Overview</span></button>
         <button aria-current={activeTab === 'items' ? 'page' : undefined} onClick={() => setActiveTab('items')}><Package size={20} /><span>Items</span></button>

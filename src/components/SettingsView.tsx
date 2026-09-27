@@ -137,7 +137,7 @@ export const SettingsView: React.FC = () => {
       </div>
 
       {/* Nav Tabs Bento Bar */}
-      <div className="bg-white p-2 rounded-3xl border border-slate-200/90 shadow-xs flex flex-wrap gap-1.5">
+      <div className="settings-navigation bg-white p-2 rounded-3xl border border-slate-200/90 shadow-xs flex flex-wrap gap-1.5">
         <button className="sale-secondary" onClick={() => setActiveSection('staff')}>Staff & access</button>
         <button
           onClick={() => setActiveSection('business')}

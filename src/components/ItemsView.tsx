@@ -59,6 +59,7 @@ export const ItemsView: React.FC = () => {
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
   const [selectedCondition, setSelectedCondition] = useState<string>('ALL');
   const [selectedTag, setSelectedTag] = useState<string>('ALL');
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'table' | 'grid' | 'aging'>(() => window.matchMedia('(max-width: 767px)').matches ? 'grid' : 'table');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'price-asc' | 'price-desc' | 'code'>('newest');
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
@@ -156,7 +157,7 @@ export const ItemsView: React.FC = () => {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-5 max-w-7xl mx-auto">
+    <div className="inventory-page p-4 sm:p-6 lg:p-8 space-y-5 max-w-7xl mx-auto">
       {copyMessage && <div className="fixed right-5 bottom-5 z-50 rounded-xl bg-slate-900 text-white border border-cyan-400/30 px-4 py-3 text-xs font-semibold shadow-xl animate-in fade-in">{copyMessage}</div>}
       {/* Header Actions Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -232,9 +233,10 @@ export const ItemsView: React.FC = () => {
       )}
 
       {/* Multi-Filter Bar (Bento Filter Card) */}
-      <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-xs space-y-3.5">
+      <div className={`inventory-filters ${filtersOpen ? 'filters-expanded' : ''} bg-white p-5 rounded-3xl border border-slate-200/90 shadow-xs space-y-3.5`}>
+        <button className="filter-toggle" aria-expanded={filtersOpen} aria-controls="inventory-filter-fields" onClick={() => setFiltersOpen(!filtersOpen)}><Filter size={17}/><span>{filtersOpen ? 'Hide filters' : 'Filter & sort'}</span><small>{[selectedCategory, selectedSubcategory, selectedStatus, selectedCondition, selectedTag].filter(v=>v!=='ALL').length} active</small></button>
         {/* Search & Main Selects */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2.5">
+        <div id="inventory-filter-fields" className="inventory-filter-fields grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2.5">
           {/* Search Box */}
           <div className="sm:col-span-2 relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -642,7 +644,7 @@ export const ItemsView: React.FC = () => {
         </div>
       ) : viewMode === 'grid' ? (
         /* Bento Grid Cards View */
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="product-grid grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {filteredItems.map(item => {
             const isSelected = selectedLabelItemCodes.includes(item.code);
             const age = getStockAge(item.dateAdded);
@@ -650,11 +652,11 @@ export const ItemsView: React.FC = () => {
             return (
               <div 
                 key={item.id}
-                className="bg-white rounded-3xl border border-slate-200/90 shadow-xs overflow-hidden flex flex-col justify-between hover:border-blue-300 hover:shadow-md transition group"
+                className="product-card bg-white rounded-3xl border border-slate-200/90 shadow-xs overflow-hidden flex flex-col justify-between hover:border-blue-300 hover:shadow-md transition group"
               >
                 <div>
                   {/* Photo & Status Header */}
-                  <div className="relative aspect-4/3 bg-slate-100 overflow-hidden">
+                  <div className="product-photo relative aspect-4/3 bg-slate-100 overflow-hidden">
                     {item.photo1 ? (
                       <img src={getItemImageUrl(item.photo1)} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
                     ) : (
@@ -690,7 +692,7 @@ export const ItemsView: React.FC = () => {
                   </div>
 
                   {/* Body Info */}
-                  <div className="p-4 space-y-2">
+                  <div className="product-info p-4 space-y-2">
                     <div className="text-[11px] text-slate-500 font-medium flex items-center justify-between">
                       <span>{item.categoryName}</span>
                       <span>{item.condition}</span>
@@ -724,7 +726,7 @@ export const ItemsView: React.FC = () => {
                 </div>
 
                 {/* Footer Buttons */}
-                <div className="p-3 bg-slate-50/70 border-t border-slate-100 flex items-center gap-2">
+                <div className="product-actions p-3 bg-slate-50/70 border-t border-slate-100 flex items-center gap-2">
                   <button
                     onClick={() => setSelectedItemForDetail(item)}
                     className="flex-1 py-2 bg-white hover:bg-slate-100 border border-slate-200 text-slate-800 text-xs font-semibold rounded-xl text-center cursor-pointer transition"

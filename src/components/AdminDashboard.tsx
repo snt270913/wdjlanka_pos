@@ -194,7 +194,17 @@ export const AdminDashboard: React.FC = () => {
   }, [sales]);
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
+    <div className="overview-page p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
+      <section className="workspace-welcome">
+        <div><span className="welcome-kicker">WDJLANKA / WORKSPACE</span><h1>Your store, at a glance.</h1><p>Everything you need for a productive day.</p></div>
+        <button onClick={() => setActiveTab('items')}>Browse inventory <ArrowUpRight size={18}/></button>
+      </section>
+      <div className="quick-actions" aria-label="Store shortcuts">
+        <button onClick={()=>setIsAddItemOpen(true)}><PlusCircle/><span>Add item</span></button>
+        <button onClick={()=>setIsQRScannerOpen(true)}><ScanLine/><span>Scan item</span></button>
+        <button onClick={()=>setActiveTab('sales')}><ShoppingCart/><span>Sales history</span></button>
+        <button onClick={()=>setActiveTab('reports')}><BarChart2/><span>Reports</span></button>
+      </div>
       {/* Top Bento Filter Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-4.5 rounded-3xl border border-slate-200/90 shadow-xs">
         <div className="flex flex-wrap items-center gap-2">

@@ -55,6 +55,7 @@ interface AppContextType {
   ) => Promise<{ success: boolean; message: string; sale?: Sale }>;
   cart: CartLine[];
   isCartOpen: boolean;
+  openCart: () => void;
   addItemToCart: (item: Item) => void;
   updateCartLine: (itemId: string, updates: Partial<Pick<CartLine, 'quantity' | 'discount' | 'discountEnabled'>>) => void;
   removeCartLine: (itemId: string) => void;
@@ -1048,6 +1049,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         markItemAsSold,
         cart,
         isCartOpen,
+        openCart: () => { if (cart.length && canAccess(currentUser, 'sell')) { setSelectedItemForSaleState(cart[0].item); setIsCartOpen(true); } },
         addItemToCart,
         updateCartLine,
         removeCartLine,
