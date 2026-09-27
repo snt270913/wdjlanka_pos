@@ -1,3 +1,4 @@
+import { ModalLayer } from './ModalLayer';
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { Sale } from '../types';
@@ -98,6 +99,7 @@ export const MarkSoldModal: React.FC = () => {
   };
 
   return (
+    <ModalLayer label="Checkout" onClose={() => setSelectedItemForSale(null)}>
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/70 backdrop-blur-sm overflow-y-auto animate-in fade-in">
       <div className="bg-white w-full max-w-xl rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-8 flex flex-col max-h-[90vh]">
         {/* Header */}
@@ -237,7 +239,7 @@ export const MarkSoldModal: React.FC = () => {
                 className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold text-sm rounded-xl shadow-lg shadow-emerald-600/30 transition flex items-center justify-center gap-2 cursor-pointer"
               >
                 <CheckCircle2 className="w-5 h-5" />
-                <span>{isCheckingOut ? 'Completing Checkout...' : 'Confirm Sale &amp; Mark as SOLD'}</span>
+                <span>{isCheckingOut ? 'Completing Checkout...' : 'Confirm sale'}</span>
               </button>
             </div>
           </form>
@@ -326,5 +328,6 @@ export const MarkSoldModal: React.FC = () => {
         )}
       </div>
     </div>
+    </ModalLayer>
   );
 };

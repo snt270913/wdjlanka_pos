@@ -1,3 +1,4 @@
+import { ModalLayer } from './ModalLayer';
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { getItemImageUrl } from '../data/supabaseSync';
@@ -86,6 +87,7 @@ export const GlobalSearchModal: React.FC = () => {
   }) : [];
 
   return (
+    <ModalLayer label="Search workspace" onClose={() => setIsGlobalSearchOpen(false)}>
     <div className="fixed inset-0 z-50 flex items-start justify-center p-4 sm:p-6 pt-16 sm:pt-24 bg-slate-900/70 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[80vh]">
         {/* Search Input Bar */}
@@ -293,5 +295,6 @@ export const GlobalSearchModal: React.FC = () => {
         </div>
       </div>
     </div>
+    </ModalLayer>
   );
 };

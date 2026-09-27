@@ -405,7 +405,7 @@ export const AdminDashboard: React.FC = () => {
       </div>
 
       {/* Main Bento Grid Container */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+      <div className="dashboard-bento grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
         {/* Bento Tile 1: Total Sales Revenue (Wide Hero Tile) */}
         <div className="lg:col-span-2 bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950 text-white p-6 rounded-3xl border border-slate-800/80 shadow-md flex flex-col justify-between relative overflow-hidden group">
           <div className="absolute right-0 top-0 translate-x-4 -translate-y-4 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />

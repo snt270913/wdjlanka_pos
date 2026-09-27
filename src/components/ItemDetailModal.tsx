@@ -1,3 +1,4 @@
+import { ModalLayer } from './ModalLayer';
 import { canAccess } from '../data/accessApi';
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
@@ -172,6 +173,7 @@ export const ItemDetailModal: React.FC = () => {
   };
 
   return (
+    <ModalLayer label="Item details" onClose={() => setSelectedItemForDetail(null)}>
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/70 backdrop-blur-sm overflow-y-auto animate-in fade-in">
       <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-8 flex flex-col max-h-[90vh]">
         {/* Header */}
@@ -585,5 +587,6 @@ export const ItemDetailModal: React.FC = () => {
         </div>
       </div>
     </div>
+    </ModalLayer>
   );
 };

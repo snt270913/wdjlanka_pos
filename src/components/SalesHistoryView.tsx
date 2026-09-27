@@ -1,3 +1,4 @@
+import { ModalLayer } from './ModalLayer';
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { downloadReceiptPdf } from '../utils/receiptPdf';
 import { useApp } from '../context/AppContext';
@@ -117,7 +118,7 @@ export const SalesHistoryView: React.FC = () => {
   const employeeNames = Array.from(new Set(sales.map(s => s.employeeName)));
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-5 max-w-7xl mx-auto">
+    <div className="transactions-page p-4 sm:p-6 lg:p-8 space-y-5 max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -142,7 +143,7 @@ export const SalesHistoryView: React.FC = () => {
       </div>
 
       {/* Metric Bento Cards Summary */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="transaction-metrics grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white p-5.5 rounded-3xl border border-slate-200/90 shadow-xs">
           <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Sales Volume</div>
           <div className="text-2xl font-black text-blue-900 font-mono mt-1">
@@ -308,9 +309,10 @@ export const SalesHistoryView: React.FC = () => {
       </dialog>
       {/* Invoice / Receipt Modal */}
       {activeReceiptSale && (
+        <ModalLayer label="Sale receipt" onClose={() => setActiveReceiptSale(null)}>
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-white w-full max-w-md max-h-[90dvh] overflow-y-auto rounded-3xl shadow-2xl border border-slate-200 overflow-hidden p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div className="receipt-panel bg-white w-full max-w-md rounded-3xl shadow-2xl border border-slate-200">
+            <div className="receipt-heading flex items-center justify-between border-b border-slate-100">
               <h3 className="text-sm font-bold text-slate-900">Sale Transaction Receipt</h3>
               <button
                 onClick={() => setActiveReceiptSale(null)}
@@ -320,7 +322,7 @@ export const SalesHistoryView: React.FC = () => {
               </button>
             </div>
 
-            <div ref={receiptRef} className="p-4 bg-white rounded-2xl border border-slate-200 font-mono text-xs text-slate-800 space-y-3">
+            <div className="receipt-scroll"><div ref={receiptRef} className="p-4 bg-white rounded-2xl border border-slate-200 font-mono text-xs text-slate-800 space-y-3">
               {activeReceiptSale.restoredAt && <p className="sale-restored">Restored on {new Date(activeReceiptSale.restoredAt).toLocaleDateString()} — excluded from sales totals</p>}
               <div className="text-center border-b border-slate-200 pb-2">
                 <div className="font-bold text-sm uppercase">{settings.companyName}</div>
@@ -338,7 +340,7 @@ export const SalesHistoryView: React.FC = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500">Item:</span>
-                  <span className="truncate max-w-[180px] font-sans font-bold">{activeReceiptSale.itemCode} - {activeReceiptSale.itemName}</span>
+                  <span className="font-sans font-bold">{activeReceiptSale.itemCode} - {activeReceiptSale.itemName}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500">Customer:</span>
@@ -374,8 +376,9 @@ export const SalesHistoryView: React.FC = () => {
               </div>
             </div>
 
+            </div>
             {receiptError && <p role="alert" className="text-sm text-red-700">{receiptError}</p>}
-            <div className="flex items-center gap-2">
+            <div className="receipt-actions flex items-center gap-2">
               <button
                 disabled={downloading} onClick={() => void downloadReceipt()}
                 className="flex-1 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer"
@@ -399,6 +402,7 @@ export const SalesHistoryView: React.FC = () => {
             </div>
           </div>
         </div>
+        </ModalLayer>
       )}
     </div>
   );

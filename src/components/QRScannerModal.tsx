@@ -1,3 +1,4 @@
+import { ModalLayer } from './ModalLayer';
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { 
@@ -127,6 +128,7 @@ export const QRScannerModal: React.FC = () => {
   if (!isQRScannerOpen) return null;
 
   return (
+    <ModalLayer label="Scan item" onClose={() => setIsQRScannerOpen(false)}>
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-950/80 backdrop-blur-md overflow-y-auto animate-in fade-in">
       <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
@@ -286,5 +288,6 @@ export const QRScannerModal: React.FC = () => {
         </div>
       </div>
     </div>
+    </ModalLayer>
   );
 };

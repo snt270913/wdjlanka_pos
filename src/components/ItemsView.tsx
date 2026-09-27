@@ -3,6 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { Item, ItemCondition, ItemStatus } from '../types';
 import { 
+  Package,
   Search, 
   Filter, 
   PlusCircle, 
@@ -233,6 +234,10 @@ export const ItemsView: React.FC = () => {
       )}
 
       {/* Multi-Filter Bar (Bento Filter Card) */}
+      <div className="catalog-categories" aria-label="Product categories">
+        <button aria-pressed={selectedCategory==='ALL'} onClick={()=>{setSelectedCategory('ALL');setSelectedSubcategory('ALL');}}>All products <span>{activeItems.length}</span></button>
+        {categories.map(c=><button key={c.id} aria-pressed={selectedCategory===c.id} onClick={()=>{setSelectedCategory(c.id);setSelectedSubcategory('ALL');}}>{c.name}</button>)}
+      </div>
       <div className={`inventory-filters ${filtersOpen ? 'filters-expanded' : ''} bg-white p-5 rounded-3xl border border-slate-200/90 shadow-xs space-y-3.5`}>
         <button className="filter-toggle" aria-expanded={filtersOpen} aria-controls="inventory-filter-fields" onClick={() => setFiltersOpen(!filtersOpen)}><Filter size={17}/><span>{filtersOpen ? 'Hide filters' : 'Filter & sort'}</span><small>{[selectedCategory, selectedSubcategory, selectedStatus, selectedCondition, selectedTag].filter(v=>v!=='ALL').length} active</small></button>
         {/* Search & Main Selects */}
@@ -643,109 +648,25 @@ export const ItemsView: React.FC = () => {
           </div>
         </div>
       ) : viewMode === 'grid' ? (
-        /* Bento Grid Cards View */
-        <div className="product-grid grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {filteredItems.map(item => {
-            const isSelected = selectedLabelItemCodes.includes(item.code);
-            const age = getStockAge(item.dateAdded);
-
-            return (
-              <div 
-                key={item.id}
-                className="product-card bg-white rounded-3xl border border-slate-200/90 shadow-xs overflow-hidden flex flex-col justify-between hover:border-blue-300 hover:shadow-md transition group"
-              >
-                <div>
-                  {/* Photo & Status Header */}
-                  <div className="product-photo relative aspect-4/3 bg-slate-100 overflow-hidden">
-                    {item.photo1 ? (
-                      <img src={getItemImageUrl(item.photo1)} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center p-4">
-                        <QRCodeSVG value={`/item/${item.code}`} size={80} />
-                      </div>
-                    )}
-
-                    <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
-                      <span className="px-2 py-0.5 bg-slate-900/90 backdrop-blur-xs text-white rounded-lg text-xs font-mono font-bold">
-                        {item.code}
-                      </span>
-                    </div>
-
-                    <div className="absolute top-2.5 right-2.5">
-                      <button
-                        onClick={() => toggleLabelSelection(item.code)}
-                        className="p-1.5 bg-white/90 backdrop-blur-xs rounded-xl shadow-xs text-slate-700 hover:text-blue-600 transition cursor-pointer"
-                        title="Select for Label Printing"
-                      >
-                        {isSelected ? <CheckSquare className="w-4 h-4 text-blue-600" /> : <Square className="w-4 h-4" />}
-                      </button>
-                    </div>
-
-                    <div className="absolute bottom-2.5 left-2.5">
-                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                        item.status === 'AVAILABLE' ? 'bg-emerald-600 text-white' :
-                        item.status === 'RESERVED' ? 'bg-amber-600 text-white' : 'bg-slate-700 text-white'
-                      }`}>
-                        {item.status}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Body Info */}
-                  <div className="product-info p-4 space-y-2">
-                    <div className="text-[11px] text-slate-500 font-medium flex items-center justify-between">
-                      <span>{item.categoryName}</span>
-                      <span>{item.condition}</span>
-                    </div>
-
-                    {item.status !== 'SOLD' && (item.quantity ?? 1) > 0 && (
-                      <div className="inline-flex px-2 py-1 rounded-lg border font-mono text-[10px] font-bold bg-emerald-50 text-emerald-700 border-emerald-200">
-                        Stock: {item.quantity ?? 1}
-                      </div>
-                    )}
-
-                    <h4 
-                      onClick={() => setSelectedItemForDetail(item)}
-                      className="text-xs font-bold text-slate-900 hover:text-blue-600 line-clamp-2 cursor-pointer"
-                    >
-                      {item.name}
-                    </h4>
-
-                    <div className="pt-2 border-t border-slate-100 flex items-baseline justify-between font-mono">
-                      <span className="text-xs text-slate-500">Retail:</span>
-                      <span className="text-sm font-bold text-slate-900">{formatCurrency(item.sellingPrice)}</span>
-                    </div>
-
-                    {isAdmin && (
-                      <div className="text-[10px] text-emerald-600 font-mono flex items-center justify-between">
-                        <span>Net Profit:</span>
-                        <span>+{formatCurrency(item.sellingPrice - item.costPrice)}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Footer Buttons */}
-                <div className="product-actions p-3 bg-slate-50/70 border-t border-slate-100 flex items-center gap-2">
-                  <button
-                    onClick={() => setSelectedItemForDetail(item)}
-                    className="flex-1 py-2 bg-white hover:bg-slate-100 border border-slate-200 text-slate-800 text-xs font-semibold rounded-xl text-center cursor-pointer transition"
-                  >
-                    Details
-                  </button>
-
-                  {canAccess(currentUser, 'sell') && item.status === 'AVAILABLE' && (
-                    <button
-                      onClick={() => setSelectedItemForSale(item)}
-                      className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl text-center cursor-pointer transition"
-                    >
-                      Add to Cart
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+        <div className="catalog-grid">
+          {filteredItems.map(item => <article key={item.id} className="catalog-card">
+            <div className="catalog-visual">
+              <button className="catalog-preview" onClick={()=>setSelectedItemForDetail(item)} aria-label={`Preview ${item.name}`}>
+                {item.photo1 ? <img loading="lazy" src={getItemImageUrl(item.photo1)} alt={item.name}/> : <div className="catalog-placeholder"><Package size={42}/><span>{item.categoryName}</span></div>}
+              </button>
+              <span className="catalog-stock">{item.status === 'AVAILABLE' ? `${item.quantity ?? 1} in stock` : item.status.toLowerCase()}</span>
+              <button className="catalog-select" aria-label={`Select ${item.code} for labels`} aria-pressed={selectedLabelItemCodes.includes(item.code)} onClick={()=>toggleLabelSelection(item.code)}>{selectedLabelItemCodes.includes(item.code)?<CheckSquare size={18}/>:<Square size={18}/>}</button>
+            </div>
+            <div className="catalog-copy">
+              <div className="catalog-meta"><span>{item.code}</span><span>{item.condition.split(' - ')[0]}</span></div>
+              <button className="catalog-title" onClick={()=>setSelectedItemForDetail(item)}>{item.name}</button>
+              <strong className="catalog-price">{formatCurrency(item.sellingPrice)}</strong>
+              {isAdmin && <small className="catalog-margin">Profit {formatCurrency(item.sellingPrice-item.costPrice)}</small>}
+            </div>
+            <div className="catalog-footer">
+              {canAccess(currentUser,'sell') && item.status==='AVAILABLE' ? <button onClick={()=>setSelectedItemForSale(item)}><ShoppingCart size={16}/><span>Add to cart</span></button> : <button onClick={()=>setSelectedItemForDetail(item)}><Eye size={16}/><span>View item</span></button>}
+            </div>
+          </article>)}
         </div>
       ) : (
         /* Stock Aging Bento Mode */

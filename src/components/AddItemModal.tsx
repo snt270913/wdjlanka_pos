@@ -1,3 +1,4 @@
+import { ModalLayer } from './ModalLayer';
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { ItemCondition } from '../types';
@@ -171,6 +172,7 @@ export const AddItemModal: React.FC = () => {
   };
 
   return (
+    <ModalLayer label="Add item" onClose={() => setIsAddItemOpen(false)}>
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/70 backdrop-blur-sm overflow-y-auto animate-in fade-in">
       <div className="bg-white w-full max-w-3xl rounded-3xl shadow-2xl border border-slate-200 overflow-hidden my-8 flex flex-col max-h-[90vh]">
         {/* Modal Header */}
@@ -570,5 +572,6 @@ export const AddItemModal: React.FC = () => {
         </div>
       </div>
     </div>
+    </ModalLayer>
   );
 };
