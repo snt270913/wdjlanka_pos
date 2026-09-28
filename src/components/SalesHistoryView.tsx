@@ -1,3 +1,4 @@
+import { MetricGrid, SalesWidgets } from './WorkspaceWidgets';
 import { ReceiptHeader } from './ReceiptHeader';
 import { ModalLayer } from './ModalLayer';
 import React, { useState, useMemo, useRef, useEffect } from 'react';
@@ -119,12 +120,12 @@ export const SalesHistoryView: React.FC = () => {
   const employeeNames = Array.from(new Set(sales.map(s => s.employeeName)));
 
   return (
-    <div className="transactions-page p-4 sm:p-6 lg:p-8 space-y-5 max-w-7xl mx-auto">
+    <div className="widget-page transactions-page p-4 sm:p-6 lg:p-8 space-y-5 max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex flex-wrap items-center gap-2">
-            <span>Sales Records & Transactions</span>
+            <span>Sales history</span>
             <span className="text-xs px-2.5 py-1 bg-emerald-100 text-emerald-800 rounded-full font-mono font-bold">
               {filteredSales.length} Transactions
             </span>
@@ -143,37 +144,13 @@ export const SalesHistoryView: React.FC = () => {
         </div>
       </div>
 
-      {/* Metric Bento Cards Summary */}
-      <div className="transaction-metrics grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white p-5.5 rounded-3xl border border-slate-200/90 shadow-xs">
-          <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Sales Volume</div>
-          <div className="text-2xl font-black text-blue-900 font-mono mt-1">
-            {formatCurrency(totalRevenue)}
-          </div>
-          <div className="text-xs text-slate-500 mt-1">Across {filteredSales.filter(s => !s.restoredAt).length} completed sales</div>
-        </div>
-
-        {isAdmin && (
-          <div className="bg-white p-5.5 rounded-3xl border border-slate-200/90 shadow-xs">
-            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Net Realized Profit</div>
-            <div className="text-2xl font-black text-emerald-600 font-mono mt-1">
-              +{formatCurrency(totalProfit)}
-            </div>
-            <div className="text-xs text-emerald-700 mt-1">
-              Avg Profit: {filteredSales.some(s => !s.restoredAt) ? formatCurrency(Math.round(totalProfit / filteredSales.filter(s => !s.restoredAt).length)) : 'Rs. 0'}
-            </div>
-          </div>
-        )}
-
-        <div className="bg-white p-5.5 rounded-3xl border border-slate-200/90 shadow-xs">
-          <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Discounts Given</div>
-          <div className="text-2xl font-black text-amber-700 font-mono mt-1">
-            {formatCurrency(totalDiscount)}
-          </div>
-          <div className="text-xs text-slate-500 mt-1">Controlled under max discount limits</div>
-        </div>
-      </div>
-
+      <MetricGrid metrics={[
+        { label: 'Sales revenue', value: formatCurrency(totalRevenue), note: `${filteredSales.filter(s => !s.restoredAt).length} completed sale records`, tone: 'ink' },
+        { label: 'Units sold', value: filteredSales.filter(s => !s.restoredAt).reduce((sum,s) => sum + (s.quantity ?? 1),0), note: 'Quantity across completed sales', tone: 'lilac' },
+        ...(isAdmin ? [{ label: 'Net profit', value: formatCurrency(totalProfit), note: 'After item acquisition costs', tone: 'mint' as const }] : []),
+        { label: 'Discounts', value: formatCurrency(totalDiscount), note: `${filteredSales.filter(s => s.restoredAt).length} restored records excluded`, tone: 'peach' },
+      ]}/>
+      <SalesWidgets sales={filteredSales} formatCurrency={formatCurrency}/>
       {/* Filters Bar */}
       <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-xs flex flex-col md:flex-row items-center gap-3">
         <div className="w-full md:flex-1 relative">

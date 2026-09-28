@@ -1,3 +1,4 @@
+import { MetricGrid } from './WorkspaceWidgets';
 import { DevicePinSettings } from './DevicePinSettings';
 import { StaffAccessSettings } from './StaffAccessSettings';
 import { BiometricSettings } from './BiometricSettings';
@@ -141,7 +142,7 @@ export const SettingsView: React.FC = () => {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-5 max-w-7xl mx-auto">
+    <div className="widget-page settings-page p-4 sm:p-6 lg:p-8 space-y-5 max-w-7xl mx-auto">
       {/* Header */}
       <div>
         <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">System &amp; Business Settings</h1>
@@ -149,6 +150,12 @@ export const SettingsView: React.FC = () => {
       </div>
 
       {/* Nav Tabs Bento Bar */}
+      <MetricGrid metrics={[
+        { label: 'Business & receipts', value: 'Your brand', note: 'Profile, contact details and receipt design', tone: 'ink', onClick: () => setActiveSection('business') },
+        { label: 'Team access', value: 'Staff', note: 'People, permissions and account access', tone: 'lilac', onClick: () => setActiveSection('staff') },
+        { label: 'Sign-in options', value: 'Security', note: 'Password, device PIN and biometrics', tone: 'mint', onClick: () => setActiveSection('security') },
+        { label: 'Product structure', value: categories.length, note: 'Categories, subcategories and item types', tone: 'peach', onClick: () => setActiveSection('categories') },
+      ]}/>
       <div className="settings-navigation bg-white p-2 rounded-3xl border border-slate-200/90 shadow-xs flex flex-wrap gap-1.5">
         <button className="sale-secondary" onClick={() => setActiveSection('staff')}>Staff & access</button>
         <button

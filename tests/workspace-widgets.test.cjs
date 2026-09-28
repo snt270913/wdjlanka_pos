@@ -1,0 +1,14 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),ts=require('typescript'),React=require('react'),{renderToStaticMarkup}=require('react-dom/server');
+const exportsObject={};vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/components/WorkspaceWidgets.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText,{exports:exportsObject,require});
+const sale={saleDate:'2026-09-28',soldPrice:100,quantity:2,categoryName:'Bicycles'};
+const formatCurrency=n=>'Rs. '+n;
+const chart=renderToStaticMarkup(React.createElement(exportsObject.RevenueWidget,{sales:[sale,{...sale,soldPrice:50,quantity:3},{...sale,soldPrice:1000,restoredAt:'2026-09-28'}],formatCurrency}));
+assert.ok(chart.includes('Rs. 150'));assert.ok(chart.includes('5 units'));assert.ok(!chart.includes('Rs. 1150'));
+const empty=renderToStaticMarkup(React.createElement(exportsObject.SalesWidgets,{sales:[],formatCurrency}));assert.ok(empty.includes('No completed sales'));assert.ok(!empty.includes('NaN'));
+const mix=renderToStaticMarkup(React.createElement(exportsObject.BreakdownWidget,{title:'Categories',subtitle:'Share',rows:Array.from({length:7},(_,i)=>({label:'Group '+i,value:i+1}))}));assert.ok(mix.includes('Other'));assert.ok(!mix.includes('NaN'));
+const restored=renderToStaticMarkup(React.createElement(exportsObject.SalesWidgets,{sales:[{...sale,restoredAt:'2026-09-28'}],formatCurrency}));assert.ok(!restored.includes('Bicycles'));
+console.log('PASS: widget revenue and units exclude restored sales; empty charts safe; long category lists aggregated.');
+const orderExports={};
+vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/components/OrderSummary.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText,{exports:orderExports,require:id=>id==='../context/AppContext'?{useApp:()=>({cart:[{item:{id:'i',name:'Example',code:'B001',sellingPrice:100,quantity:5},quantity:3,discount:10,discountEnabled:true}],currentUser:{role:'ADMIN'},formatCurrency})}:id==='../data/accessApi'?{canAccess:()=>true}:require(id)});
+const order=renderToStaticMarkup(React.createElement(orderExports.OrderSummary));assert.ok(order.includes('Rs. 290'));assert.ok(!order.includes('Rs. 270'));
+console.log('PASS: order widget applies discount once per line, matching checkout.');

@@ -1,3 +1,4 @@
+import { MetricGrid } from './WorkspaceWidgets';
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { 
@@ -62,7 +63,7 @@ export const QRLabelGeneratorView: React.FC = () => {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-5 max-w-7xl mx-auto">
+    <div className="widget-page qrlabelgenerator-page p-4 sm:p-6 lg:p-8 space-y-5 max-w-7xl mx-auto">
       {/* Control Panel (Hidden during print via .no-print) */}
       <div className="no-print space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -101,6 +102,11 @@ export const QRLabelGeneratorView: React.FC = () => {
           </div>
         </div>
 
+        <MetricGrid metrics={[
+          { label: 'Labels ready', value: printableItems.length, note: 'Products in the current print queue', tone: 'ink' },
+          { label: 'A4 sheets', value: Math.ceil(printableItems.length / Number(layoutMode)), note: `${layoutMode} labels per sheet`, tone: 'lilac' },
+          { label: 'Selected codes', value: selectedLabelItemCodes.length, note: 'Chosen from your catalog', tone: 'mint' },
+        ]}/>
         {/* Customization Options Bento Bar */}
         <div className="bg-white p-6 rounded-3xl border border-slate-200/90 shadow-xs space-y-4">
           <div className="flex items-center justify-between">

@@ -1,3 +1,5 @@
+import { ModalLayer } from './ModalLayer';
+import { MetricGrid, BreakdownWidget } from './WorkspaceWidgets';
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { Customer } from '../types';
@@ -42,7 +44,7 @@ export const CustomerDirectoryView: React.FC = () => {
   }, [selectedCustomer, sales]);
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-5 max-w-7xl mx-auto">
+    <div className="widget-page customerdirectory-page p-4 sm:p-6 lg:p-8 space-y-5 max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -56,6 +58,16 @@ export const CustomerDirectoryView: React.FC = () => {
         </div>
       </div>
 
+      <MetricGrid metrics={[
+        { label: 'Customers', value: customers.length, note: 'Buyers in your directory', tone: 'ink' },
+        { label: 'Recorded value', value: formatCurrency(customers.reduce((sum,c) => sum + c.totalSpent,0)), note: 'Combined customer spending', tone: 'mint' },
+        { label: 'Multiple purchases', value: customers.filter(c => c.purchases.length > 1).length, note: 'Customers with more than one item record', tone: 'lilac' },
+        { label: 'Matching customers', value: filteredCustomers.length, note: 'Based on your search', tone: 'peach' },
+      ]}/>
+      <div className="customer-insights">
+        <BreakdownWidget title="Customer activity" subtitle="Purchase records in your customer directory" rows={[{ label: 'Multiple purchases', value: customers.filter(c => c.purchases.length > 1).length },{ label: 'Single purchase', value: customers.filter(c => c.purchases.length === 1).length },{ label: 'No purchases', value: customers.filter(c => !c.purchases.length).length }]}/>
+        <section className="workspace-widget customer-leaders"><div className="widget-heading"><div><span className="widget-eyebrow">RELATIONSHIPS</span><h2>Top customers</h2></div><Users size={20}/></div><p className="widget-description">Your highest-value buyers at a glance</p>{[...customers].sort((a,b) => b.totalSpent - a.totalSpent).slice(0,4).map((customer,index) => <button key={customer.id} onClick={() => setSelectedCustomer(customer)}><span className="customer-rank">{String(index + 1).padStart(2,'0')}</span><span><strong>{customer.name}</strong><small>{customer.purchases.length} item records</small></span><b>{formatCurrency(customer.totalSpent)}</b><ChevronRight size={16}/></button>)}{!customers.length && <p className="widget-empty">Customer activity will appear after your first sale.</p>}</section>
+      </div>
       {/* Search Input (Bento Card) */}
       <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-xs">
         <div className="relative">
@@ -81,7 +93,8 @@ export const CustomerDirectoryView: React.FC = () => {
             <div
               key={customer.id}
               onClick={() => setSelectedCustomer(customer)}
-              className="bg-white p-6 rounded-3xl border border-slate-200/90 shadow-xs hover:border-emerald-400 hover:shadow-md transition cursor-pointer flex flex-col justify-between group"
+              role="button" tabIndex={0} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedCustomer(customer); } }}
+              className="customer-profile-card bg-white p-6 rounded-3xl border border-slate-200/90 shadow-xs hover:border-emerald-400 hover:shadow-md transition cursor-pointer flex flex-col justify-between group"
             >
               <div>
                 <div className="flex items-start justify-between gap-2">
@@ -132,7 +145,7 @@ export const CustomerDirectoryView: React.FC = () => {
 
       {/* Customer Detail Drawer / Modal */}
       {selectedCustomer && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in">
+        <ModalLayer label="Customer details" onClose={() => setSelectedCustomer(null)}><div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm animate-in fade-in">
           <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl border border-slate-200 overflow-hidden p-6 space-y-5 max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-3">
@@ -148,7 +161,7 @@ export const CustomerDirectoryView: React.FC = () => {
                 onClick={() => setSelectedCustomer(null)}
                 className="p-1 hover:bg-slate-100 rounded-xl text-slate-400 hover:text-slate-700 cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                <X aria-label="Close customer details" className="w-5 h-5" />
               </button>
             </div>
 
@@ -205,7 +218,7 @@ export const CustomerDirectoryView: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div></ModalLayer>
       )}
     </div>
   );

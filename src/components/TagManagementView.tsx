@@ -1,3 +1,4 @@
+import { MetricGrid } from './WorkspaceWidgets';
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { 
@@ -28,7 +29,7 @@ export const TagManagementView: React.FC = () => {
     : [];
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-5 max-w-7xl mx-auto">
+    <div className="widget-page tagmanagement-page p-4 sm:p-6 lg:p-8 space-y-5 max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -39,6 +40,12 @@ export const TagManagementView: React.FC = () => {
         </div>
       </div>
 
+      <MetricGrid metrics={[
+        { label: 'Your tags', value: tags.length, note: 'Organise your product collections', tone: 'ink' },
+        { label: 'Tagged products', value: activeItems.filter(i => i.tags.length > 0).length, note: 'Items with at least one tag', tone: 'lilac' },
+        { label: 'Without tags', value: activeItems.filter(i => !i.tags.length).length, note: 'Ready to organise', tone: 'peach' },
+        { label: 'Current selection', value: selectedTagFilter ? taggedItems.length : 'All tags', note: selectedTagFilter || 'Choose a collection below', tone: 'mint' },
+      ]}/>
       {/* Add New Tag Bento Tile */}
       <div className="bg-white p-6 rounded-3xl border border-slate-200/90 shadow-xs">
         <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2.5 flex items-center gap-1.5">

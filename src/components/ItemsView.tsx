@@ -159,7 +159,7 @@ export const ItemsView: React.FC = () => {
   };
 
   return (
-    <div className="catalog-workspace"><div className="inventory-page p-4 sm:p-6 lg:p-8 space-y-5 max-w-7xl mx-auto">
+    <div className="widget-page catalog-workspace"><div className="inventory-page p-4 sm:p-6 lg:p-8 space-y-5 max-w-7xl mx-auto">
       {copyMessage && <div className="fixed right-5 bottom-5 z-50 rounded-xl bg-slate-900 text-white border border-cyan-400/30 px-4 py-3 text-xs font-semibold shadow-xl animate-in fade-in">{copyMessage}</div>}
       {/* Header Actions Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

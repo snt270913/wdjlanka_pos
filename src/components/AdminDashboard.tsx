@@ -1,3 +1,4 @@
+import { MetricGrid, SalesWidgets } from './WorkspaceWidgets';
 import React, { useState, useMemo } from 'react';
 import { getItemImageUrl } from '../data/supabaseSync';
 import { useApp } from '../context/AppContext';
@@ -194,7 +195,7 @@ export const AdminDashboard: React.FC = () => {
   }, [sales]);
 
   return (
-    <div className="overview-page p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
+    <div className="widget-page overview-page p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
       <section className="workspace-welcome">
         <div><span className="welcome-kicker">WDJLANKA / WORKSPACE</span><h1>Your store, at a glance.</h1><p>Everything you need for a productive day.</p></div>
         <button onClick={() => setActiveTab('items')}>Browse inventory <ArrowUpRight size={18}/></button>
@@ -256,6 +257,13 @@ export const AdminDashboard: React.FC = () => {
         </div>
       </div>
 
+      <MetricGrid metrics={[
+        { label: 'Sales revenue', value: formatCurrency(totalSalesRevenue), note: `${itemsSold} units sold in selected period`, tone: 'ink' },
+        { label: 'Net profit', value: formatCurrency(totalProfit), note: `${totalSalesRevenue ? (totalProfit / totalSalesRevenue * 100).toFixed(1) : 0}% profit margin`, tone: 'mint' },
+        { label: 'Available stock', value: availableItems.reduce((sum,item) => sum + (item.quantity ?? 1),0), note: `${reservedItems.reduce((sum,item) => sum + (item.quantity ?? 1),0)} units reserved`, tone: 'lilac', onClick: () => setActiveTab('items') },
+        { label: 'Inventory value', value: formatCurrency(stockSellingValue), note: `Acquisition cost ${formatCurrency(stockCost)}`, tone: 'peach' },
+      ]}/>
+      <SalesWidgets sales={filteredSales} formatCurrency={formatCurrency}/>
       {lowStockCategories.length > 0 && (
         <div className="bg-slate-900 text-white p-5 rounded-3xl border border-amber-400/30 shadow-xs shadow-amber-900/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -405,104 +413,7 @@ export const AdminDashboard: React.FC = () => {
       </div>
 
       {/* Main Bento Grid Container */}
-      <div className="dashboard-bento grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-        {/* Bento Tile 1: Total Sales Revenue (Wide Hero Tile) */}
-        <div className="lg:col-span-2 bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950 text-white p-6 rounded-3xl border border-slate-800/80 shadow-md flex flex-col justify-between relative overflow-hidden group">
-          <div className="absolute right-0 top-0 translate-x-4 -translate-y-4 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-          <div className="flex items-center justify-between relative z-10">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-blue-400 animate-pulse" />
-              <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">Total Sales Revenue</span>
-            </div>
-            <div className="p-2.5 bg-white/10 rounded-2xl backdrop-blur-xs border border-white/10">
-              <DollarSign className="w-5 h-5 text-blue-400" />
-            </div>
-          </div>
-          <div className="mt-6 relative z-10">
-            <div className="text-3xl sm:text-4xl font-black tracking-tight font-mono text-white">
-              {formatCurrency(totalSalesRevenue)}
-            </div>
-            <div className="flex items-center gap-2 text-xs text-slate-300 mt-2">
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-blue-500/20 text-blue-300 font-semibold">
-                <TrendingUp className="w-3.5 h-3.5" />
-                {itemsSold} Item{itemsSold === 1 ? '' : 's'} Sold
-              </span>
-              <span className="text-slate-400">in selected period</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Bento Tile 2: Net Realized Profit */}
-        <div className="bg-white border border-slate-200/90 p-6 rounded-3xl shadow-xs flex flex-col justify-between hover:border-slate-300 transition">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Net Realized Profit</span>
-            <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-2xl border border-emerald-100">
-              <TrendingUp className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="mt-4">
-            <div className="text-2xl sm:text-3xl font-black text-emerald-600 font-mono tracking-tight">
-              {formatCurrency(totalProfit)}
-            </div>
-            <div className="text-xs text-slate-500 mt-2 flex items-center gap-1">
-              <span>Margin:</span>
-              <strong className="text-slate-800 font-bold px-1.5 py-0.5 bg-slate-100 rounded-md">
-                {totalSalesRevenue > 0 ? `${((totalProfit / totalSalesRevenue) * 100).toFixed(1)}%` : '0%'}
-              </strong>
-            </div>
-          </div>
-        </div>
-
-        {/* Bento Tile 3: Physical Stock Count */}
-        <div className="bg-white border border-slate-200/90 p-6 rounded-3xl shadow-xs flex flex-col justify-between hover:border-slate-300 transition">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Stock Count</span>
-            <div className="p-2.5 bg-amber-50 text-amber-600 rounded-2xl border border-amber-100">
-              <PackageCheck className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="mt-4 flex items-center justify-between">
-            <div>
-              <div className="text-2xl font-black text-slate-900 font-mono">{availableItems.reduce((sum, item) => sum + (item.quantity ?? 1), 0)}</div>
-              <div className="text-xs text-emerald-600 font-semibold flex items-center gap-1 mt-0.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                Available
-              </div>
-            </div>
-            <div className="text-right border-l border-slate-100 pl-4">
-              <div className="text-xl font-bold text-amber-600 font-mono">{reservedItems.length}</div>
-              <div className="text-xs text-amber-600 font-semibold mt-0.5">Reserved</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Bento Tile 4: Active Stock Inventory Value */}
-        <div className="lg:col-span-2 bg-white border border-slate-200/90 p-6 rounded-3xl shadow-xs flex flex-col justify-between hover:border-slate-300 transition">
-          <div className="flex items-center justify-between">
-            <div>
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Active Inventory Valuation</span>
-              <p className="text-xs text-slate-400 mt-0.5">Total retail and acquisition cost breakdown</p>
-            </div>
-            <div className="p-2.5 bg-purple-50 text-purple-600 rounded-2xl border border-purple-100">
-              <Package className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="mt-4 grid grid-cols-2 gap-4 pt-3 border-t border-slate-100">
-            <div>
-              <span className="text-xs text-slate-400 font-medium">Selling Value:</span>
-              <div className="text-xl font-black text-slate-900 font-mono">{formatCurrency(stockSellingValue)}</div>
-            </div>
-            <div>
-              <span className="text-xs text-slate-400 font-medium">Acquisition Cost:</span>
-              <div className="text-sm font-bold text-slate-600 font-mono">{formatCurrency(stockCost)}</div>
-            </div>
-          </div>
-          <div className="text-xs text-purple-700 font-semibold pt-2 mt-2 border-t border-purple-50 flex items-center justify-between bg-purple-50/50 p-2.5 rounded-xl">
-            <span>Potential Unrealized Profit:</span>
-            <span className="font-mono font-bold">+{formatCurrency(potentialUnrealizedProfit)}</span>
-          </div>
-        </div>
-
+      <div className="overview-secondary grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
         {/* Bento Tile 5: Category Performance */}
         <div className="lg:col-span-2 bg-white p-6 rounded-3xl border border-slate-200/90 shadow-xs flex flex-col justify-between">
           <div>

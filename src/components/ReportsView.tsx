@@ -1,3 +1,4 @@
+import { MetricGrid } from './WorkspaceWidgets';
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { 
@@ -274,12 +275,12 @@ export const ReportsView: React.FC = () => {
     .sort((a, b) => getStockAge(b.dateAdded) - getStockAge(a.dateAdded));
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-5 max-w-7xl mx-auto">
+    <div className="widget-page reports-page p-4 sm:p-6 lg:p-8 space-y-5 max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <span>Executive Business Analytics &amp; Reports</span>
+            <span>Financial reports</span>
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">Comprehensive audit reports for imports, revenue, margins, and staff</p>
         </div>
@@ -304,7 +305,7 @@ export const ReportsView: React.FC = () => {
 
       {/* Tabs & Range Bar (Bento Tile) */}
       <div className="bg-white p-5 rounded-3xl border border-slate-200/90 shadow-xs flex flex-col md:flex-row items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 p-1.5 rounded-2xl w-full md:w-auto">
+        <div className="report-tabs flex flex-wrap items-center gap-1.5 bg-slate-100 p-1.5 rounded-2xl w-full md:w-auto">
           <button
             onClick={() => setActiveReportTab('financial')}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
@@ -374,10 +375,16 @@ export const ReportsView: React.FC = () => {
         </div>
       </div>
 
+          <MetricGrid metrics={[
+            { label: 'Gross revenue', value: formatCurrency(totalRevenue), note: `${filteredSales.reduce((sum,s) => sum + (s.quantity ?? 1),0)} units sold`, tone: 'ink' },
+            { label: 'Net profit', value: formatCurrency(totalProfit), note: `${profitMargin}% overall margin`, tone: 'mint' },
+            { label: 'Inventory cost', value: formatCurrency(totalInventoryCost), note: 'Acquisition value of current stock', tone: 'lilac' },
+            { label: 'Retail value', value: formatCurrency(totalInventoryRetail), note: `${formatCurrency(totalInventoryRetail - totalInventoryCost)} potential profit`, tone: 'peach' },
+          ]}/>
       {/* Report Tab Contents */}
       {activeReportTab === 'financial' && (
-        <div className="space-y-5">
-          <div className="bg-slate-900 text-white rounded-3xl border border-cyan-400/25 p-6 shadow-xs shadow-cyan-950/20">
+        <div className="financial-widget-board space-y-5">
+          <div className="monthly-export-widget bg-slate-900 text-white rounded-3xl border border-cyan-400/25 p-6 shadow-xs shadow-cyan-950/20">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
               <div>
                 <h2 className="text-sm font-bold">Monthly Report Export &amp; Summary</h2>
@@ -398,33 +405,6 @@ export const ReportsView: React.FC = () => {
               <div className="rounded-2xl bg-slate-800/80 border border-slate-700 p-4"><div className="text-[10px] uppercase tracking-wider text-slate-500">Top Category</div><div className="text-sm font-bold text-amber-300 mt-2 truncate" title={monthlySummary.topCategory}>{monthlySummary.topCategory}</div></div>
             </div>
           </div>
-          {/* 4 Financial Highlight Bento Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white p-5.5 rounded-3xl border border-slate-200/90 shadow-xs">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Gross Sales Revenue</span>
-              <div className="text-2xl font-black text-blue-900 font-mono mt-1">{formatCurrency(totalRevenue)}</div>
-              <div className="text-xs text-slate-500 mt-1">{filteredSales.reduce((sum, sale) => sum + (sale.quantity ?? 1), 0)} units sold</div>
-            </div>
-
-            <div className="bg-white p-5.5 rounded-3xl border border-slate-200/90 shadow-xs">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Net Realized Profit</span>
-              <div className="text-2xl font-black text-emerald-600 font-mono mt-1">+{formatCurrency(totalProfit)}</div>
-              <div className="text-xs text-emerald-700 mt-1">Overall margin: {profitMargin}%</div>
-            </div>
-
-            <div className="bg-white p-5.5 rounded-3xl border border-slate-200/90 shadow-xs">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Active Inventory Cost</span>
-              <div className="text-2xl font-black text-purple-900 font-mono mt-1">{formatCurrency(totalInventoryCost)}</div>
-              <div className="text-xs text-slate-500 mt-1">Total physical goods tied up</div>
-            </div>
-
-            <div className="bg-white p-5.5 rounded-3xl border border-slate-200/90 shadow-xs">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Potential Inventory Value</span>
-              <div className="text-2xl font-black text-slate-900 font-mono mt-1">{formatCurrency(totalInventoryRetail)}</div>
-              <div className="text-xs text-purple-600 mt-1">Unrealized profit: +{formatCurrency(totalInventoryRetail - totalInventoryCost)}</div>
-            </div>
-          </div>
-
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
             <div className="lg:col-span-3 bg-slate-900 text-white rounded-3xl border border-slate-800 p-6 shadow-xs overflow-hidden">
               <div className="flex items-start justify-between gap-3 mb-6">
@@ -447,19 +427,19 @@ export const ReportsView: React.FC = () => {
                 <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="absolute inset-0 w-full h-40" role="img" aria-label="Revenue versus expenses trend chart">
                   <defs>
                     <linearGradient id="revenue-fill" x1="0" x2="0" y1="0" y2="1">
-                      <stop offset="0%" stopColor="#22d3ee" stopOpacity="0.35" />
-                      <stop offset="100%" stopColor="#22d3ee" stopOpacity="0" />
+                      <stop offset="0%" stopColor="#a28bce" stopOpacity="0.35" />
+                      <stop offset="100%" stopColor="#a28bce" stopOpacity="0" />
                     </linearGradient>
                     <linearGradient id="expense-fill" x1="0" x2="0" y1="0" y2="1">
-                      <stop offset="0%" stopColor="#fbbf24" stopOpacity="0.22" />
-                      <stop offset="100%" stopColor="#fbbf24" stopOpacity="0" />
+                      <stop offset="0%" stopColor="#d8b799" stopOpacity="0.22" />
+                      <stop offset="100%" stopColor="#d8b799" stopOpacity="0" />
                     </linearGradient>
                   </defs>
                   {[25, 50, 75].map((line) => <line key={line} x1="0" x2="100" y1={line} y2={line} stroke="#334155" strokeWidth="0.5" strokeDasharray="2 2" />)}
                   <polygon points={`0,100 ${trendPoints.map((point) => `${point.x},${point.revenueY}`).join(' ')} 100,100`} fill="url(#revenue-fill)" />
                   <polygon points={`0,100 ${trendPoints.map((point) => `${point.x},${point.expensesY}`).join(' ')} 100,100`} fill="url(#expense-fill)" />
-                  <polyline points={trendPoints.map((point) => `${point.x},${point.revenueY}`).join(' ')} fill="none" stroke="#22d3ee" strokeWidth="1.6" vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" />
-                  <polyline points={trendPoints.map((point) => `${point.x},${point.expensesY}`).join(' ')} fill="none" stroke="#fbbf24" strokeWidth="1.6" vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" />
+                  <polyline points={trendPoints.map((point) => `${point.x},${point.revenueY}`).join(' ')} fill="none" stroke="#a28bce" strokeWidth="1.6" vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" />
+                  <polyline points={trendPoints.map((point) => `${point.x},${point.expensesY}`).join(' ')} fill="none" stroke="#d8b799" strokeWidth="1.6" vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
                 <div className="absolute left-0 right-0 bottom-0 flex justify-between gap-2 border-b border-slate-700 pb-1">
                   {trendPoints.map((point) => <span key={point.day} className="text-[9px] text-slate-500 truncate">{point.day.slice(5)}</span>)}
@@ -518,12 +498,12 @@ export const ReportsView: React.FC = () => {
                   <div className="relative w-36 h-36 shrink-0 rounded-full" style={{ background: `conic-gradient(${topCategories.map((category, index) => {
                     const start = (topCategories.slice(0, index).reduce((sum, item) => sum + item.revenue, 0) / totalRevenue) * 100;
                     const end = (topCategories.slice(0, index + 1).reduce((sum, item) => sum + item.revenue, 0) / totalRevenue) * 100;
-                    return `${['#22d3ee', '#3b82f6', '#a78bfa', '#fbbf24', '#34d399'][index % 5]} ${start}% ${end}%`;
+                    return `${['#a28bce', '#556c64', '#c4b4df', '#d8b799', '#b9dacc'][index % 5]} ${start}% ${end}%`;
                   }).join(', ')})` }}>
                     <div className="absolute inset-5 rounded-full bg-slate-900 flex flex-col items-center justify-center"><span className="text-[10px] text-slate-400">Revenue</span><span className="text-sm font-black text-white">100%</span></div>
                   </div>
                   <div className="space-y-2 min-w-0">
-                    {topCategories.map((category, index) => <div key={category.id} className="flex items-center gap-2 text-[10px] min-w-0"><span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: ['#22d3ee', '#3b82f6', '#a78bfa', '#fbbf24', '#34d399'][index % 5] }} /><span className="text-slate-300 truncate">{category.name}</span><span className="font-mono text-white ml-auto">{((category.revenue / totalRevenue) * 100).toFixed(0)}%</span></div>)}
+                    {topCategories.map((category, index) => <div key={category.id} className="flex items-center gap-2 text-[10px] min-w-0"><span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: ['#a28bce', '#556c64', '#c4b4df', '#d8b799', '#b9dacc'][index % 5] }} /><span className="text-slate-300 truncate">{category.name}</span><span className="font-mono text-white ml-auto">{((category.revenue / totalRevenue) * 100).toFixed(0)}%</span></div>)}
                   </div>
                 </div>}
               </div>
@@ -537,7 +517,7 @@ export const ReportsView: React.FC = () => {
                   <div className="space-y-3">
                     <div className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Top Selling Categories by Quantity</div>
                     {categoryAnalytics.slice(0, 4).map((category, index) => <div key={category.id} className="flex items-center gap-3">
-                      <div className="relative w-10 h-10 rounded-full shrink-0" style={{ background: `conic-gradient(#22d3ee ${category.quantityShare}%, #1e293b 0)` }}><div className="absolute inset-1 rounded-full bg-slate-900 flex items-center justify-center text-[9px] font-mono text-cyan-300">{category.quantityShare.toFixed(0)}%</div></div>
+                      <div className="relative w-10 h-10 rounded-full shrink-0" style={{ background: `conic-gradient(#a28bce ${category.quantityShare}%, #1e293b 0)` }}><div className="absolute inset-1 rounded-full bg-slate-900 flex items-center justify-center text-[9px] font-mono text-cyan-300">{category.quantityShare.toFixed(0)}%</div></div>
                       <div className="min-w-0"><div className="text-xs font-semibold text-slate-200 truncate">{category.name}</div><div className="text-[10px] text-slate-500">{category.salesCount} units sold</div></div>
                       {index === 0 && <span className="ml-auto text-[9px] font-bold text-cyan-300 border border-cyan-400/30 rounded-full px-2 py-1">TOP</span>}
                     </div>)}
@@ -545,7 +525,7 @@ export const ReportsView: React.FC = () => {
                   <div className="space-y-3">
                     <div className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Profit Margin Share per Category</div>
                     {categoryAnalytics.slice().sort((a, b) => b.profitShare - a.profitShare).slice(0, 4).map((category) => <div key={category.id} className="flex items-center gap-3">
-                      <div className="relative w-10 h-10 rounded-full shrink-0" style={{ background: `conic-gradient(#34d399 ${Math.min(category.profitShare, 100)}%, #1e293b 0)` }}><div className="absolute inset-1 rounded-full bg-slate-900 flex items-center justify-center text-[9px] font-mono text-emerald-300">{category.profitShare.toFixed(0)}%</div></div>
+                      <div className="relative w-10 h-10 rounded-full shrink-0" style={{ background: `conic-gradient(#b9dacc ${Math.min(category.profitShare, 100)}%, #1e293b 0)` }}><div className="absolute inset-1 rounded-full bg-slate-900 flex items-center justify-center text-[9px] font-mono text-emerald-300">{category.profitShare.toFixed(0)}%</div></div>
                       <div className="min-w-0"><div className="text-xs font-semibold text-slate-200 truncate">{category.name}</div><div className="text-[10px] text-slate-500">+{formatCurrency(category.profit)} profit</div></div>
                     </div>)}
                   </div>
