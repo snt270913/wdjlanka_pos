@@ -1,3 +1,4 @@
+import { OrderSummary } from './OrderSummary';
 import { canAccess } from '../data/accessApi';
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
@@ -61,7 +62,7 @@ export const ItemsView: React.FC = () => {
   const [selectedCondition, setSelectedCondition] = useState<string>('ALL');
   const [selectedTag, setSelectedTag] = useState<string>('ALL');
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'table' | 'grid' | 'aging'>(() => window.matchMedia('(max-width: 767px)').matches ? 'grid' : 'table');
+  const [viewMode, setViewMode] = useState<'table' | 'grid' | 'aging'>('grid');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'price-asc' | 'price-desc' | 'code'>('newest');
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
 
@@ -158,18 +159,18 @@ export const ItemsView: React.FC = () => {
   };
 
   return (
-    <div className="inventory-page p-4 sm:p-6 lg:p-8 space-y-5 max-w-7xl mx-auto">
+    <div className="catalog-workspace"><div className="inventory-page p-4 sm:p-6 lg:p-8 space-y-5 max-w-7xl mx-auto">
       {copyMessage && <div className="fixed right-5 bottom-5 z-50 rounded-xl bg-slate-900 text-white border border-cyan-400/30 px-4 py-3 text-xs font-semibold shadow-xl animate-in fade-in">{copyMessage}</div>}
       {/* Header Actions Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <span>Inventory Management</span>
+            <span>Product catalog</span>
             <span className="text-xs px-2.5 py-1 bg-slate-100 text-slate-700 rounded-full font-mono font-bold">
               {filteredItems.length} of {activeItems.length} Items
             </span>
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">Filter by category, status, condition, and manage QR tags</p>
+          <p className="text-xs text-slate-500 mt-0.5">Find a product, check stock, and build your next sale.</p>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
@@ -727,6 +728,6 @@ export const ItemsView: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
+    </div><OrderSummary /></div>
   );
 };

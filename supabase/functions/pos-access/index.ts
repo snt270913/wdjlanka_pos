@@ -58,6 +58,34 @@ Deno.serve(async req => {
     if (auth.error || !auth.data.user) return reply({ error: 'Please sign in again.' }, 401);
     const user = auth.data.user; const account = await member(db, user);
     const isAdmin = account.role === 'ADMIN';
+    if (body.action === 'settings-get') {
+      const row = ensure(await db.from('pos_business_settings').select('data').eq('id', 1).maybeSingle());
+      return reply({ settings: row?.data || null });
+    }
+    if (body.action === 'settings-save') {
+      if (!isAdmin) return reply({ error: 'Administrator access is required.' }, 403);
+      const input = body.settings || {}; const data: Record<string, unknown> = {};
+      for (const field of ['companyName','tagline','phone','email','address','currency']) {
+        if (typeof input[field] !== 'string' || input[field].length > (field === 'address' ? 400 : 160)) throw new Error('Please shorten or complete the business details.');
+        data[field] = input[field].trim();
+      }
+      if (!data.companyName || !data.currency) throw new Error('Company name and currency are required.');
+      if (input.receipt) {
+        const r = input.receipt; const receipt: Record<string, unknown> = {};
+        for (const field of ['title','footer']) {
+          if (typeof r[field] !== 'string' || r[field].length > (field === 'title' ? 40 : 250)) throw new Error('Receipt text is too long.');
+          receipt[field] = r[field].trim();
+        }
+        for (const field of ['background','textColor']) {
+          if (!/^#[0-9a-f]{6}$/i.test(r[field])) throw new Error('Invalid receipt colour.');
+          receipt[field] = r[field];
+        }
+        for (const field of ['showTagline','showEmail','showPhone','showAddress']) receipt[field] = r[field] === true;
+        data.receipt = receipt;
+      }
+      ensure(await db.from('pos_business_settings').upsert({ id: 1, data, updated_at: new Date().toISOString() }));
+      return reply({ ok: true });
+    }
     if (body.action === 'me') return reply(account);
     if (body.action === 'pin-list') {
       return reply(ensure(await db.from('pos_pin_devices').select('id,name,created_at,expires_at,attempts').eq('user_id', user.id)));

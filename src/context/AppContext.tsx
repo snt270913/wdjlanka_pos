@@ -109,7 +109,9 @@ interface AppContextType {
 
   // Settings
   settings: BusinessSettings;
-  updateSettings: (updates: Partial<BusinessSettings>) => void;
+  settingsReady: boolean;
+  settingsError: string;
+  updateSettings: (updates: Partial<BusinessSettings>) => Promise<void>;
 
   // Modals & Navigation Helpers
   activeTab: string;
@@ -236,8 +238,22 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const [settings, setSettings] = useState<BusinessSettings>(() => {
     const saved = localStorage.getItem('wdj_settings_v2');
-    return saved ? { ...JSON.parse(saved), tagline: DEFAULT_TAGLINE } : INITIAL_SETTINGS;
+    return saved ? { ...INITIAL_SETTINGS, ...JSON.parse(saved) } : INITIAL_SETTINGS;
   });
+
+  const [settingsReady, setSettingsReady] = useState(false);
+  const [settingsError, setSettingsError] = useState('');
+  useEffect(() => {
+    setSettingsReady(false); setSettingsError('');
+    if (!currentUser) return;
+    let active = true;
+    accessApi<{ settings: Partial<BusinessSettings> | null }>('settings-get').then(result => {
+      if (!active) return;
+      if (result.settings) setSettings(prev => ({ ...prev, ...result.settings }));
+      setSettingsReady(true);
+    }).catch(() => { if (active) setSettingsError('Unable to load saved business settings. Please check your connection and reload.'); });
+    return () => { active = false; };
+  }, [currentUser?.id]);
 
   // UI state
   const [activeTab, setActiveTab] = useState<string>('dashboard');
@@ -907,9 +923,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   // Settings
-  const updateSettings = (updates: Partial<BusinessSettings>) => {
+  const updateSettings = async (updates: Partial<BusinessSettings>) => {
+    if (!settingsReady) throw new Error('Business settings are still loading. Please reload and retry.');
+    await accessApi('settings-save', { settings: updates });
     setSettings(prev => ({ ...prev, ...updates }));
-    logAction('Settings Updated', 'Updated business configurations / preferences');
+    logAction('Settings Updated', 'Updated business and receipt settings');
   };
 
   // Supabase verifies credentials; authorization comes only from server-owned metadata.
@@ -986,11 +1004,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         i.dateAdded,
       ]);
     } else if (type === 'sales') {
-      headers = ['Sale ID', 'Item Code', 'Item Name', 'Sold Price (Rs)', 'Original Price (Rs)', 'Discount (Rs)', 'Cost (Rs)', 'Profit (Rs)', 'Customer Name', 'Customer Phone', 'Employee', 'Sale Date', 'Status', 'Restored At'];
+      headers = ['Sale ID', 'Item Code', 'Item Name', 'Quantity', 'Unit Price (Rs)', 'Net Unit Price (Rs)', 'Sold Price (Rs)', 'Original Price (Rs)', 'Discount (Rs)', 'Cost (Rs)', 'Profit (Rs)', 'Customer Name', 'Customer Phone', 'Employee', 'Sale Date', 'Status', 'Restored At'];
       rows = sales.map(s => [
         s.id,
         s.itemCode,
         `"${s.itemName.replace(/"/g, '""')}"`,
+        String(s.quantity ?? 1),
+        (s.originalPrice / Math.max(1, s.quantity ?? 1)).toFixed(2),
+        (s.soldPrice / Math.max(1, s.quantity ?? 1)).toFixed(2),
         s.soldPrice.toString(),
         s.originalPrice.toString(),
         s.discount.toString(),
@@ -1088,6 +1109,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         logAction,
         settings,
         updateSettings,
+        settingsReady,
+        settingsError,
         activeTab,
         setActiveTab,
         selectedItemForDetail,

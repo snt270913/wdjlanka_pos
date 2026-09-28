@@ -84,7 +84,7 @@ export const ReportsView: React.FC = () => {
       return totals;
     }, {});
     const topCategory = (Object.values(categoryTotals) as { name: string; revenue: number }[]).sort((a, b) => b.revenue - a.revenue)[0]?.name || 'No sales';
-    return { revenue, profit, quantity: monthlySales.length, topCategory };
+    return { revenue, profit, quantity: monthlySales.reduce((sum, sale) => sum + (sale.quantity ?? 1), 0), topCategory };
   }, [monthlySales]);
 
   const selectedMonthLabel = new Date(`${selectedMonth}-01T00:00:00`).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
@@ -101,8 +101,8 @@ export const ReportsView: React.FC = () => {
       ['Total Items Sold', monthlySummary.quantity.toString()],
       ['Top Performing Category', monthlySummary.topCategory],
       [],
-      ['Sale ID', 'Date', 'Item', 'Category', 'Revenue', 'Profit', 'Payment Type'],
-      ...monthlySales.map((sale) => [sale.id, sale.saleDate, sale.itemName, sale.categoryName, sale.soldPrice.toString(), sale.profit.toString(), sale.paymentType || 'Cash']),
+      ['Sale ID', 'Date', 'Item', 'Category', 'Quantity', 'Unit Price', 'Discount', 'Revenue', 'Profit', 'Payment Type'],
+      ...monthlySales.map((sale) => [sale.id, sale.saleDate, sale.itemName, sale.categoryName, String(sale.quantity ?? 1), String(sale.originalPrice / Math.max(1, sale.quantity ?? 1)), String(sale.discount), sale.soldPrice.toString(), sale.profit.toString(), sale.paymentType || 'Cash']),
     ];
     const csv = rows.map((row) => row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(',')).join('\n');
     const link = document.createElement('a');
@@ -120,8 +120,8 @@ export const ReportsView: React.FC = () => {
   const profitMargin = totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(1) : '0';
 
   // Inventory valuation
-  const totalInventoryCost = activeItems.reduce((a, i) => a + (i.status !== 'SOLD' && (categoryFilter === 'ALL' || i.categoryId === categoryFilter) ? i.costPrice : 0), 0);
-  const totalInventoryRetail = activeItems.reduce((a, i) => a + (i.status !== 'SOLD' && (categoryFilter === 'ALL' || i.categoryId === categoryFilter) ? i.sellingPrice : 0), 0);
+  const totalInventoryCost = activeItems.reduce((a, i) => a + (i.status !== 'SOLD' && (categoryFilter === 'ALL' || i.categoryId === categoryFilter) ? i.costPrice * (i.quantity ?? 1) : 0), 0);
+  const totalInventoryRetail = activeItems.reduce((a, i) => a + (i.status !== 'SOLD' && (categoryFilter === 'ALL' || i.categoryId === categoryFilter) ? i.sellingPrice * (i.quantity ?? 1) : 0), 0);
 
   // Category breakdown
   const categoryReports = useMemo(() => {
@@ -134,14 +134,14 @@ export const ReportsView: React.FC = () => {
     // Count stock
     activeItems.forEach(i => {
       if (i.status !== 'SOLD' && map[i.categoryId]) {
-        map[i.categoryId].stockCount += 1;
+        map[i.categoryId].stockCount += (i.quantity ?? 1);
       }
     });
 
     // Count sales
     filteredSales.forEach(s => {
       if (map[s.categoryId]) {
-        map[s.categoryId].salesCount += 1;
+        map[s.categoryId].salesCount += (s.quantity ?? 1);
         map[s.categoryId].revenue += s.soldPrice;
         map[s.categoryId].profit += s.profit;
       }
@@ -223,7 +223,7 @@ export const ReportsView: React.FC = () => {
       const name = item?.subcategoryName || 'Unassigned';
       const key = `${sale.categoryId}:${name}`;
       if (!map[key]) map[key] = { name, categoryName: sale.categoryName, quantity: 0, revenue: 0, profit: 0 };
-      map[key].quantity += 1;
+      map[key].quantity += (sale.quantity ?? 1);
       map[key].revenue += sale.soldPrice;
       map[key].profit += sale.profit;
     });
@@ -259,7 +259,7 @@ export const ReportsView: React.FC = () => {
     const map: Record<string, { name: string; quantity: number; revenue: number; profit: number }> = {};
     filteredSales.forEach((sale) => {
       if (!map[sale.itemId]) map[sale.itemId] = { name: sale.itemName, quantity: 0, revenue: 0, profit: 0 };
-      map[sale.itemId].quantity += 1;
+      map[sale.itemId].quantity += (sale.quantity ?? 1);
       map[sale.itemId].revenue += sale.soldPrice;
       map[sale.itemId].profit += sale.profit;
     });
@@ -403,7 +403,7 @@ export const ReportsView: React.FC = () => {
             <div className="bg-white p-5.5 rounded-3xl border border-slate-200/90 shadow-xs">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Gross Sales Revenue</span>
               <div className="text-2xl font-black text-blue-900 font-mono mt-1">{formatCurrency(totalRevenue)}</div>
-              <div className="text-xs text-slate-500 mt-1">{filteredSales.length} items sold</div>
+              <div className="text-xs text-slate-500 mt-1">{filteredSales.reduce((sum, sale) => sum + (sale.quantity ?? 1), 0)} units sold</div>
             </div>
 
             <div className="bg-white p-5.5 rounded-3xl border border-slate-200/90 shadow-xs">
@@ -588,7 +588,7 @@ export const ReportsView: React.FC = () => {
 
           <div className="bg-slate-900 text-white rounded-3xl border border-emerald-400/20 p-6 shadow-xs">
             <div className="flex items-start justify-between mb-5"><div><h3 className="text-sm font-bold">Top-Performing Items by Profitability</h3><p className="text-[11px] text-slate-400 mt-1">Highest net profit contribution in the active selection</p></div><Award className="w-5 h-5 text-amber-300" /></div>
-            {topProfitItems.length === 0 ? <p className="text-xs text-slate-500">No sales match the active filters.</p> : <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">{topProfitItems.map((item, index) => <div key={item.name} className={`rounded-2xl border p-4 ${index === 0 ? 'border-amber-300/50 bg-amber-300/[0.08]' : 'border-slate-800 bg-slate-800/60'}`}><div className="text-[10px] text-slate-500 font-mono">#{index + 1}</div><div className="text-xs font-bold text-slate-200 mt-2 line-clamp-2">{item.name}</div><div className="text-sm font-black font-mono text-emerald-300 mt-3">+{formatCurrency(item.profit)}</div><div className="text-[10px] text-slate-500 mt-1">{item.quantity} sale{item.quantity === 1 ? '' : 's'} · {((item.profit / Math.max(totalProfit, 1)) * 100).toFixed(1)}% share</div></div>)}</div>}
+            {topProfitItems.length === 0 ? <p className="text-xs text-slate-500">No sales match the active filters.</p> : <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">{topProfitItems.map((item, index) => <div key={item.name} className={`rounded-2xl border p-4 ${index === 0 ? 'border-amber-300/50 bg-amber-300/[0.08]' : 'border-slate-800 bg-slate-800/60'}`}><div className="text-[10px] text-slate-500 font-mono">#{index + 1}</div><div className="text-xs font-bold text-slate-200 mt-2 line-clamp-2">{item.name}</div><div className="text-sm font-black font-mono text-emerald-300 mt-3">+{formatCurrency(item.profit)}</div><div className="text-[10px] text-slate-500 mt-1">{item.quantity} unit{item.quantity === 1 ? '' : 's'} · {((item.profit / Math.max(totalProfit, 1)) * 100).toFixed(1)}% share</div></div>)}</div>}
           </div>
 
           {/* Detailed Financial Summary Bento Card */}

@@ -1,7 +1,7 @@
 import { jsPDF } from 'jspdf';
-import type { Sale } from '../types';
+import type { Sale, BusinessSettings } from '../types';
 
-export function downloadReceiptPdf(completedSales: Sale[], settings: {currency:string;tagline:string;email:string;address:string}) {
+export function downloadReceiptPdf(completedSales: Sale[], settings: Pick<BusinessSettings, 'currency' | 'tagline' | 'email' | 'address'> & Partial<BusinessSettings>) {
   if (!completedSales.length) return;
       const firstSale = completedSales[0];
       const totalDiscount = completedSales.reduce((sum, sale) => sum + sale.discount, 0);
@@ -12,46 +12,36 @@ export function downloadReceiptPdf(completedSales: Sale[], settings: {currency:s
       const right = pageWidth - 20;
       const formatInvoiceCurrency = (amount: number) => `${settings.currency} ${amount.toLocaleString('en-LK')}`;
 
-      invoice.setFillColor(15, 23, 42);
-      invoice.rect(0, 0, pageWidth, 42, 'F');
-      invoice.setTextColor(255, 255, 255);
-      invoice.setFont('helvetica', 'bold');
-      invoice.setFontSize(22);
-      invoice.text('WDJLANKA (PVT) LTD', left, 18);
-      invoice.setFont('helvetica', 'normal');
-      invoice.setFontSize(8);
-      const taglineLines = invoice.splitTextToSize(settings.tagline || 'Sales & Inventory Invoice', 105);
-      invoice.text(taglineLines, left, 25, { lineHeightFactor: 1.25 });
-      const contactY = 25 + taglineLines.length * 4;
-      invoice.text(settings.email || '', left, contactY);
-      if (settings.address) invoice.text(invoice.splitTextToSize(settings.address, 70), right, contactY, { align: 'right' });
-      invoice.setFont('helvetica', 'bold');
-      invoice.setFontSize(18);
-      invoice.text('INVOICE', right, 20, { align: 'right' });
-      invoice.setFont('helvetica', 'normal');
+      const r = settings.receipt;
+      invoice.setFont('helvetica', 'bold'); invoice.setFontSize(19);
+      const company = invoice.splitTextToSize(settings.companyName || 'WDJLANKA (PVT) LTD', right - left);
       invoice.setFontSize(9);
-      invoice.text(firstSale.id, right, 28, { align: 'right' });
+      const details = [r?.showTagline !== false ? settings.tagline : '', r?.showPhone !== false ? settings.phone : '', r?.showEmail !== false ? settings.email : '', r?.showAddress !== false ? settings.address : ''].filter(Boolean).flatMap(text => invoice.splitTextToSize(text!, right - left));
+      const headerHeight = 27 + company.length * 8 + details.length * 4;
+      invoice.setFillColor(r?.background || '#0f172a'); invoice.rect(0, 0, pageWidth, headerHeight, 'F');
+      invoice.setTextColor(r?.textColor || '#ffffff');
+      invoice.setFontSize(10); invoice.text(r?.title ?? 'INVOICE', left, 12);
+      invoice.setFontSize(19); invoice.text(company, left, 23, { lineHeightFactor: 1.2 });
+      invoice.setFont('helvetica', 'normal'); invoice.setFontSize(9);
+      if (details.length) invoice.text(details, left, 27 + company.length * 8, { lineHeightFactor: 1.25 });
+      const offset = headerHeight - 42;
 
       invoice.setTextColor(15, 23, 42);
       invoice.setFont('helvetica', 'bold');
       invoice.setFontSize(11);
-      invoice.text('Transaction Details', left, 58);
+      invoice.text('Transaction Details', left, 58 + offset);
       invoice.setDrawColor(226, 232, 240);
-      invoice.line(left, 62, right, 62);
+      invoice.line(left, 62 + offset, right, 62 + offset);
       invoice.setFont('helvetica', 'normal');
       invoice.setFontSize(10);
-      invoice.text(`Transaction ID: ${firstSale.id}`, left, 72);
-      invoice.text(`Date: ${new Date(firstSale.saleDate).toLocaleString()}`, left, 80);
-      invoice.text(`Employee: ${firstSale.employeeName}`, left, 88);
-      invoice.text('Bill To:', right - 55, 72);
-      invoice.setFont('helvetica', 'bold');
-      invoice.text(firstSale.customerName, right - 55, 80);
-      invoice.setFont('helvetica', 'normal');
-      if (firstSale.customerId?.startsWith('CUS-')) {
-        invoice.text(`Customer Code: ${firstSale.customerId}`, right - 55, 88);
-      }
+      invoice.setFontSize(8);
+      const transaction = [ ...invoice.splitTextToSize(`Transaction ID: ${firstSale.id}`, 100), `Date: ${new Date(firstSale.saleDate).toLocaleString()}`, ...invoice.splitTextToSize(`Employee: ${firstSale.employeeName}`, 100) ];
+      const customer = ['Bill To:', ...invoice.splitTextToSize(firstSale.customerName || 'Customer', 55), ...(firstSale.customerId?.startsWith('CUS-') ? invoice.splitTextToSize(`Customer Code: ${firstSale.customerId}`, 55) : [])];
+      invoice.text(transaction, left, 72 + offset, { lineHeightFactor: 1.7 });
+      invoice.text(customer, right - 55, 72 + offset, { lineHeightFactor: 1.7 });
+      const detailHeight = Math.max(transaction.length, customer.length) * 5;
 
-      const tableTop = 106;
+      const tableTop = Math.max(106, 82 + detailHeight) + offset;
       invoice.setFillColor(241, 245, 249);
       invoice.roundedRect(left, tableTop, right - left, 12, 2, 2, 'F');
       invoice.setTextColor(71, 85, 105);
@@ -103,8 +93,8 @@ export function downloadReceiptPdf(completedSales: Sale[], settings: {currency:s
       invoice.setTextColor(100, 116, 139);
       invoice.setFont('helvetica', 'normal');
       invoice.setFontSize(9);
-      invoice.text('Thank you for choosing WDJLANKA (PVT) LTD.', left, 265);
-      invoice.text('Please retain this invoice for your records. All sales are subject to store terms.', left, 272);
+      invoice.text(invoice.splitTextToSize(r?.footer ?? `Thank you for choosing ${settings.companyName || 'WDJLANKA (PVT) LTD'}.`, right - left), left, 265);
+
       invoice.setDrawColor(203, 213, 225);
       invoice.line(left, 258, right, 258);
       invoice.save(`invoice-${firstSale.id}.pdf`);

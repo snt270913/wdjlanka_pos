@@ -164,6 +164,7 @@ export interface ActivityLog {
 }
 
 export interface BusinessSettings {
+  receipt?: { title: string; background: string; textColor: string; footer: string; showTagline: boolean; showEmail: boolean; showPhone: boolean; showAddress: boolean };
   companyName: string;
   tagline: string;
   phone: string;

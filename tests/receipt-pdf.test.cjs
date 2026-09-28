@@ -19,3 +19,12 @@ exportsObject.downloadReceiptPdf(Array.from({length:40},(_,i)=>({...sale,id:Stri
 assert.ok(saved.pages>1,'Long receipts must paginate');
 assert.ok(saved.text.includes('RESTORED'));
 console.log('PASS: PDF download, zero/mixed discount visibility, legacy missing customer ID, restored labels, pagination.');
+exportsObject.downloadReceiptPdf([sale],{...settings,companyName:'Example Custom Shop',phone:'0112345678',email:'private@example.test',receipt:{title:'CUSTOM RECEIPT',background:'#123456',textColor:'#ffffff',footer:'A custom thank you',showTagline:false,showEmail:false,showPhone:true,showAddress:true}});
+assert.ok(saved.text.includes('Example Custom Shop'));
+assert.ok(saved.text.includes('CUSTOM RECEIPT'));
+assert.ok(saved.text.includes('0112345678'));
+assert.ok(saved.text.includes('A custom thank you'));
+assert.ok(!saved.text.includes('Quality items'));
+assert.ok(!saved.text.includes('private@example.test'));
+assert.ok(saved.text.includes('Qty: 2'));
+console.log('PASS: custom receipt branding, phone, footer and visibility settings applied to PDF.');

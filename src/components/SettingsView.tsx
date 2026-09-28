@@ -2,8 +2,9 @@ import { DevicePinSettings } from './DevicePinSettings';
 import { StaffAccessSettings } from './StaffAccessSettings';
 import { BiometricSettings } from './BiometricSettings';
 import { supabase } from '../supabaseClient';
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
+import { ReceiptHeader } from './ReceiptHeader';
 import { Category } from '../types';
 import { 
   Building2, 
@@ -19,7 +20,9 @@ import {
 
 export const SettingsView: React.FC = () => {
   const { 
-    settings, 
+    settings,
+    settingsReady,
+    settingsError,
     updateSettings, 
     categories, 
     addCategory, 
@@ -46,6 +49,19 @@ export const SettingsView: React.FC = () => {
   const [currency, setCurrency] = useState(settings.currency);
   const [businessSavedMessage, setBusinessSavedMessage] = useState(false);
 
+  const [phone, setPhone] = useState(settings.phone || '');
+  const defaults = { title: 'INVOICE', background: '#0f172a', textColor: '#ffffff', footer: 'Thank you for your business.', showTagline: true, showEmail: true, showPhone: true, showAddress: true };
+  const [receipt, setReceipt] = useState({ ...defaults, ...settings.receipt });
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const dirty = useRef(false);
+  useEffect(() => {
+    if (dirty.current) return;
+    setCompanyName(settings.companyName); setTagline(settings.tagline); setEmail(settings.email);
+    setAddress(settings.address); setCurrency(settings.currency); setPhone(settings.phone || '');
+    setReceipt({ ...defaults, ...settings.receipt });
+  }, [settings]);
+
   // New category state
   const [newCatName, setNewCatName] = useState('');
   const [newCatDesc, setNewCatDesc] = useState('');
@@ -60,17 +76,13 @@ export const SettingsView: React.FC = () => {
   const [editingSubcategoryKey, setEditingSubcategoryKey] = useState<string | null>(null);
   const [editingSubcategoryName, setEditingSubcategoryName] = useState('');
 
-  const handleSaveBusiness = (e: React.FormEvent) => {
-    e.preventDefault();
-    updateSettings({
-      companyName,
-      tagline,
-      email,
-      address,
-      currency,
-    });
-    setBusinessSavedMessage(true);
-    setTimeout(() => setBusinessSavedMessage(false), 3000);
+  const handleSaveBusiness = async (e: React.FormEvent) => {
+    e.preventDefault(); setSaving(true); setSaveError(''); setBusinessSavedMessage(false);
+    try {
+      await updateSettings({ companyName, tagline, email, address, currency, phone, receipt });
+      dirty.current = false; setBusinessSavedMessage(true);
+    } catch (error) { setSaveError(error instanceof Error ? error.message : 'Unable to save. Please retry.'); }
+    finally { setSaving(false); }
   };
 
   const handleAddCategory = async (e: React.FormEvent) => {
@@ -202,12 +214,15 @@ export const SettingsView: React.FC = () => {
             )}
           </div>
 
-          <form onSubmit={handleSaveBusiness} className="space-y-4 text-xs">
+          <form onSubmit={handleSaveBusiness} onChange={() => { dirty.current = true; setBusinessSavedMessage(false); }} className="space-y-4 text-xs">
+            {settingsError && <p role="alert" className="p-3 bg-red-50 text-red-700 rounded-xl">{settingsError}</p>}
+            <fieldset disabled={saving || !settingsReady} className="space-y-4">
+            {saveError && <p role="alert" className="p-3 bg-red-50 text-red-700 rounded-xl">{saveError}</p>}
             <div>
               <label className="block font-semibold text-slate-700 mb-1.5">Company Registered Name</label>
               <input
                 type="text"
-                value={companyName}
+                maxLength={160} value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
                 className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
                 required
@@ -219,7 +234,7 @@ export const SettingsView: React.FC = () => {
                 <label className="block font-semibold text-slate-700 mb-1.5">Tagline / Motto</label>
                 <input
                   type="text"
-                  value={tagline}
+                  maxLength={160} value={tagline}
                   onChange={(e) => setTagline(e.target.value)}
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
                 />
@@ -232,7 +247,7 @@ export const SettingsView: React.FC = () => {
                 <label className="block font-semibold text-slate-700 mb-1.5">Official Email</label>
                 <input
                   type="email"
-                  value={email}
+                  maxLength={160} value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
                 />
@@ -252,21 +267,31 @@ export const SettingsView: React.FC = () => {
             <div>
               <label className="block font-semibold text-slate-700 mb-1.5">Showroom / Warehouse Address</label>
               <textarea
-                value={address}
+                maxLength={400} value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 rows={2}
                 className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition"
               />
             </div>
 
+            <label className="block font-semibold">Phone number<input maxLength={160} value={phone} onChange={e => setPhone(e.target.value)} className="block w-full mt-2 p-3 rounded-xl border border-slate-200" /></label>
+            <section className="receipt-editor space-y-4 border-t pt-5">
+              <div><h4 className="text-base font-bold">Receipt design</h4><p className="text-slate-500 mt-1">Personalise your printed and downloaded receipts.</p></div>
+              <label className="block font-semibold">Receipt title<input maxLength={40} value={receipt.title} onChange={e => setReceipt({ ...receipt, title: e.target.value })} className="block w-full mt-2 p-3 rounded-xl border border-slate-200" /></label>
+              <div className="grid grid-cols-2 gap-4">{(['background', 'textColor'] as const).map(key => <label key={key} className="font-semibold">{key === 'background' ? 'Header colour' : 'Text colour'}<input aria-label={key === 'background' ? 'Header colour' : 'Text colour'} type="color" value={receipt[key]} onChange={e => setReceipt({ ...receipt, [key]: e.target.value })} className="block mt-2 w-full h-11 rounded-lg" /></label>)}</div>
+              <div className="grid grid-cols-2 gap-3">{(['showTagline', 'showEmail', 'showPhone', 'showAddress'] as const).map(key => <label key={key} className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl"><input type="checkbox" checked={receipt[key]} onChange={e => setReceipt({ ...receipt, [key]: e.target.checked })} />{key.replace('show', 'Show ')}</label>)}</div>
+              <label className="block font-semibold">Footer message<textarea maxLength={250} value={receipt.footer} onChange={e => setReceipt({ ...receipt, footer: e.target.value })} className="block w-full mt-2 p-3 rounded-xl border border-slate-200" /></label>
+              <div className="rounded-2xl border overflow-hidden"><ReceiptHeader settings={{ ...settings, companyName, tagline, email, phone, address, receipt }} /><div className="p-5 bg-slate-50 text-slate-500">Live receipt header preview</div></div>
+            </section>
             <div className="pt-2">
               <button
-                type="submit"
+                type="submit" disabled={saving}
                 className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold transition cursor-pointer shadow-xs"
               >
-                Save Business Profile
+                {saving ? 'Saving…' : !settingsReady ? 'Waiting for saved settings…' : 'Save Business & Receipt'}
               </button>
             </div>
+            </fieldset>
           </form>
         </div>
       )}

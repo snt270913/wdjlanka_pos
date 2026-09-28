@@ -122,7 +122,7 @@ export const AdminDashboard: React.FC = () => {
     return filteredSales.reduce((acc, s) => acc + s.profit, 0);
   }, [filteredSales]);
 
-  const itemsSold = filteredSales.length;
+  const itemsSold = filteredSales.reduce((sum, sale) => sum + (sale.quantity ?? 1), 0);
 
   const availableItems = useMemo(() => {
     return activeItems.filter(i => {
@@ -160,7 +160,7 @@ export const AdminDashboard: React.FC = () => {
       if (map[s.categoryId]) {
         map[s.categoryId].sales += s.soldPrice;
         map[s.categoryId].profit += s.profit;
-        map[s.categoryId].count += 1;
+        map[s.categoryId].count += (s.quantity ?? 1);
       } else {
         map[s.categoryId] = { name: s.categoryName, sales: s.soldPrice, profit: s.profit, count: 1 };
       }

@@ -1,3 +1,4 @@
+import { ReceiptHeader } from './ReceiptHeader';
 import { ModalLayer } from './ModalLayer';
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { downloadReceiptPdf } from '../utils/receiptPdf';
@@ -325,8 +326,7 @@ export const SalesHistoryView: React.FC = () => {
             <div className="receipt-scroll"><div ref={receiptRef} className="p-4 bg-white rounded-2xl border border-slate-200 font-mono text-xs text-slate-800 space-y-3">
               {activeReceiptSale.restoredAt && <p className="sale-restored">Restored on {new Date(activeReceiptSale.restoredAt).toLocaleDateString()} — excluded from sales totals</p>}
               <div className="text-center border-b border-slate-200 pb-2">
-                <div className="font-bold text-sm uppercase">{settings.companyName}</div>
-                <div className="text-[10px] text-slate-500">{settings.tagline}</div>
+                <ReceiptHeader settings={settings} />
               </div>
 
               <div className="space-y-1 text-[11px]">
@@ -374,6 +374,7 @@ export const SalesHistoryView: React.FC = () => {
                   <span>{formatCurrency(activeReceiptSale.soldPrice)}</span>
                 </div>
               </div>
+              <p className="pt-3 text-center text-xs text-slate-500 break-words">{settings.receipt?.footer ?? 'Thank you for your business.'}</p>
             </div>
 
             </div>

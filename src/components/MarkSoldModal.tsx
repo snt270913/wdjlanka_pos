@@ -1,3 +1,4 @@
+import { ReceiptHeader } from './ReceiptHeader';
 import { ModalLayer } from './ModalLayer';
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
@@ -218,6 +219,7 @@ export const MarkSoldModal: React.FC = () => {
                   />
                 </div>
               </div>
+              <p className="pt-3 text-center text-xs text-slate-500 break-words">{settings.receipt?.footer ?? 'Thank you for your business.'}</p>
             </div>
 
             {/* Handled Employee & Auto Timestamp Notice */}
@@ -263,12 +265,11 @@ export const MarkSoldModal: React.FC = () => {
             {/* Printable Digital Receipt Card */}
             <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200 space-y-4 font-mono text-xs text-slate-800">
               <div className="text-center border-b border-slate-200 pb-3">
-                <div className="font-bold text-sm uppercase tracking-wider">{settings.companyName}</div>
-                <div className="text-[10px] text-slate-500">{settings.tagline}</div>
+                <ReceiptHeader settings={settings} />
               </div>
 
               <div className="space-y-1 text-[11px]">
-                {completedSales.map(sale => <div key={sale.id} className="flex justify-between gap-3"><span className="text-slate-500">Item / Qty:</span><span className="truncate max-w-[260px]">{sale.itemCode} | Qty: {sale.quantity || 1} | Unit: {formatCurrency(sale.originalPrice / (sale.quantity || 1))}{sale.discount > 0 && <> | Discount: {formatCurrency(sale.discount)}</>} | Final: {formatCurrency(sale.soldPrice)} - {sale.itemName}</span></div>)}
+                {completedSales.map(sale => <div key={sale.id} className="flex justify-between gap-3"><span className="text-slate-500">Item / Qty:</span><span className="break-words max-w-[260px]">{sale.itemCode} | Qty: {sale.quantity || 1} | Unit: {formatCurrency(sale.originalPrice / (sale.quantity || 1))}{sale.discount > 0 && <> | Discount: {formatCurrency(sale.discount)}</>} | Final: {formatCurrency(sale.soldPrice)} - {sale.itemName}</span></div>)}
                 <div className="flex justify-between">
                   <span className="text-slate-500">Customer:</span>
                   <span>{completedSales[0].customerName}</span>
